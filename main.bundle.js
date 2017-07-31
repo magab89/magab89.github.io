@@ -145,8 +145,7 @@ AppModule = __decorate([
 
 
 var appRoutes = [
-    { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
-    { path: 'dashboard', component: __WEBPACK_IMPORTED_MODULE_0__dashboard_dashboard_component__["a" /* DashboardComponent */] },
+    { path: '', component: __WEBPACK_IMPORTED_MODULE_0__dashboard_dashboard_component__["a" /* DashboardComponent */] },
     { path: 'book/:id', component: __WEBPACK_IMPORTED_MODULE_1__bookdetails_bookdetails_component__["a" /* BookdetailsComponent */] },
     { path: 'cart', component: __WEBPACK_IMPORTED_MODULE_2__cart_cart_component__["a" /* CartComponent */] }
 ];
@@ -397,7 +396,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/nav-bar/nav-bar.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<header>\n  <nav class='navbar navbar-sticky-top navbar-dark bg-inverse'>\n    <ul class='nav navbar-nav'>\n      <li class='nav-item'>\n        <span class='navbar-brand'>BookR</span>\n      </li>\n    </ul>\n    <ul class='nav navbar-nav pull-xs-right'>\n      <li class='nav-item' >\n        <a class='nav-link' routerLink=\"/dashboard\">Dashboard</a>\n      </li>\n      <li class='nav-item' >\n        <a class='nav-link' routerLink=\"/cart\">Cart</a>\n      </li>\n\n    </ul>\n  </nav>\n</header>\n"
+module.exports = "<header>\n  <nav class='navbar navbar-sticky-top navbar-dark bg-inverse'>\n    <ul class='nav navbar-nav'>\n      <li class='nav-item'>\n        <span class='navbar-brand'>BookR</span>\n      </li>\n    </ul>\n    <ul class='nav navbar-nav pull-xs-right'>\n      <li class='nav-item' >\n        <a class='nav-link' routerLink=\"/\">Home</a>\n      </li>\n      <li class='nav-item' >\n        <a class='nav-link' routerLink=\"/cart\">Cart</a>\n      </li>\n\n    </ul>\n  </nav>\n</header>\n"
 
 /***/ }),
 
