@@ -58,7 +58,7 @@ var AppComponent = (function () {
     return AppComponent;
 }());
 AppComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["_11" /* Component */])({
+    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["_14" /* Component */])({
         selector: 'app-root',
         template: __webpack_require__("../../../../../src/app/app.component.html"),
         styles: [__webpack_require__("../../../../../src/app/app.component.css")]
@@ -82,6 +82,9 @@ AppComponent = __decorate([
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__angular_router__ = __webpack_require__("../../../router/@angular/router.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__app_routing__ = __webpack_require__("../../../../../src/app/app.routing.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__nav_bar_nav_bar_component__ = __webpack_require__("../../../../../src/app/nav-bar/nav-bar.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__angular_forms__ = __webpack_require__("../../../forms/@angular/forms.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__services_BookService__ = __webpack_require__("../../../../../src/app/services/BookService.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__angular_http__ = __webpack_require__("../../../http/@angular/http.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AppModule; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -89,6 +92,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+
+
+
 
 
 
@@ -114,9 +120,11 @@ AppModule = __decorate([
         ],
         imports: [
             __WEBPACK_IMPORTED_MODULE_0__angular_platform_browser__["a" /* BrowserModule */],
-            __WEBPACK_IMPORTED_MODULE_6__angular_router__["a" /* RouterModule */].forRoot(__WEBPACK_IMPORTED_MODULE_7__app_routing__["a" /* appRoutes */])
+            __WEBPACK_IMPORTED_MODULE_11__angular_http__["a" /* HttpModule */],
+            __WEBPACK_IMPORTED_MODULE_6__angular_router__["a" /* RouterModule */].forRoot(__WEBPACK_IMPORTED_MODULE_7__app_routing__["a" /* appRoutes */]),
+            __WEBPACK_IMPORTED_MODULE_9__angular_forms__["a" /* FormsModule */]
         ],
-        providers: [],
+        providers: [__WEBPACK_IMPORTED_MODULE_10__services_BookService__["a" /* BookService */]],
         bootstrap: [__WEBPACK_IMPORTED_MODULE_2__app_component__["a" /* AppComponent */]]
     })
 ], AppModule);
@@ -139,7 +147,7 @@ AppModule = __decorate([
 var appRoutes = [
     { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
     { path: 'dashboard', component: __WEBPACK_IMPORTED_MODULE_0__dashboard_dashboard_component__["a" /* DashboardComponent */] },
-    { path: 'bookdetails/:id', component: __WEBPACK_IMPORTED_MODULE_1__bookdetails_bookdetails_component__["a" /* BookdetailsComponent */] },
+    { path: 'book/:id', component: __WEBPACK_IMPORTED_MODULE_1__bookdetails_bookdetails_component__["a" /* BookdetailsComponent */] },
     { path: 'cart', component: __WEBPACK_IMPORTED_MODULE_2__cart_cart_component__["a" /* CartComponent */] }
 ];
 //# sourceMappingURL=app.routing.js.map
@@ -167,7 +175,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/bookdetails/bookdetails.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<p>\n  bookdetails works!\n</p>\n"
+module.exports = "<p>\n  bookdetails works!\n</p>\n\n<p>{{book | json}}</p>\n"
 
 /***/ }),
 
@@ -176,6 +184,10 @@ module.exports = "<p>\n  bookdetails works!\n</p>\n"
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_router__ = __webpack_require__("../../../router/@angular/router.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_switchMap__ = __webpack_require__("../../../../rxjs/add/operator/switchMap.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_switchMap___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_switchMap__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__services_BookService__ = __webpack_require__("../../../../../src/app/services/BookService.ts");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return BookdetailsComponent; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -187,22 +199,34 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 
+
+
+
 var BookdetailsComponent = (function () {
-    function BookdetailsComponent() {
+    function BookdetailsComponent(route, bookService) {
+        this.route = route;
+        this.bookService = bookService;
     }
     BookdetailsComponent.prototype.ngOnInit = function () {
+        var _this = this;
+        this.route.paramMap
+            .switchMap(function (params) {
+            return _this.bookService.getBook(params.get('id'));
+        })
+            .subscribe(function (book) { return _this.book = book; });
     };
     return BookdetailsComponent;
 }());
 BookdetailsComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["_11" /* Component */])({
+    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["_14" /* Component */])({
         selector: 'app-bookdetails',
         template: __webpack_require__("../../../../../src/app/bookdetails/bookdetails.component.html"),
         styles: [__webpack_require__("../../../../../src/app/bookdetails/bookdetails.component.css")]
     }),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_router__["b" /* ActivatedRoute */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_3__services_BookService__["a" /* BookService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_3__services_BookService__["a" /* BookService */]) === "function" && _b || Object])
 ], BookdetailsComponent);
 
+var _a, _b;
 //# sourceMappingURL=bookdetails.component.js.map
 
 /***/ }),
@@ -256,7 +280,7 @@ var CartComponent = (function () {
     return CartComponent;
 }());
 CartComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["_11" /* Component */])({
+    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["_14" /* Component */])({
         selector: 'app-cart',
         template: __webpack_require__("../../../../../src/app/cart/cart.component.html"),
         styles: [__webpack_require__("../../../../../src/app/cart/cart.component.css")]
@@ -289,7 +313,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/dashboard/dashboard.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<p>\n  dashboard works!\n</p>\n"
+module.exports = "<form>\n  <div class=\"form-group\">\n    <label for=\"search\">Search field:</label>\n    <input class=\"form-control\" id=\"search\" [(ngModel)]=\"values\" placeholder=\"Search\" name=\"search\">\n  </div>\n  <button class=\"btn btn-default\" (click)=\"search()\">Search!</button>\n</form>\n\n<p>Typing values: {{values}}</p>\n<p>Searched for: {{searchTerm}}</p>\n\n<div *ngIf=\"result\">\n  <ul class=\"list-group\">\n    <li class=\"list-group-item\" *ngFor=\"let book of books\" (click)=\"onSelect(book)\">\n      <h6><span class=\"badge\">{{ book.id }}</span>{{book.title}}</h6>\n      <p>{{book.author}}</p>\n\n    </li>\n  </ul>\n\n</div>\n"
 
 /***/ }),
 
@@ -298,6 +322,8 @@ module.exports = "<p>\n  dashboard works!\n</p>\n"
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__services_BookService__ = __webpack_require__("../../../../../src/app/services/BookService.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_router__ = __webpack_require__("../../../router/@angular/router.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return DashboardComponent; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -309,22 +335,43 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 
+
+
 var DashboardComponent = (function () {
-    function DashboardComponent() {
+    function DashboardComponent(bookService, router) {
+        this.bookService = bookService;
+        this.router = router;
+        this.values = '';
+        this.searchTerm = '';
+        this.result = false;
+        this.books = [];
     }
     DashboardComponent.prototype.ngOnInit = function () {
+    };
+    DashboardComponent.prototype.search = function () {
+        this.searchTerm = this.values;
+        this.result = true;
+        this.getBooks();
+    };
+    DashboardComponent.prototype.getBooks = function () {
+        var _this = this;
+        this.bookService.getBooks().then(function (books) { return _this.books = books; });
+    };
+    DashboardComponent.prototype.onSelect = function (book) {
+        this.router.navigate(['/book', book.id]);
     };
     return DashboardComponent;
 }());
 DashboardComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["_11" /* Component */])({
+    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["_14" /* Component */])({
         selector: 'app-dashboard',
         template: __webpack_require__("../../../../../src/app/dashboard/dashboard.component.html"),
         styles: [__webpack_require__("../../../../../src/app/dashboard/dashboard.component.css")]
     }),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__services_BookService__["a" /* BookService */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__services_BookService__["a" /* BookService */]) === "function" && _a || Object, typeof (_b = typeof __WEBPACK_IMPORTED_MODULE_2__angular_router__["c" /* Router */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_2__angular_router__["c" /* Router */]) === "function" && _b || Object])
 ], DashboardComponent);
 
+var _a, _b;
 //# sourceMappingURL=dashboard.component.js.map
 
 /***/ }),
@@ -350,7 +397,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/nav-bar/nav-bar.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<header>\n  <nav class='navbar navbar-sticky-top navbar-dark bg-inverse'>\n    <ul class='nav navbar-nav'>\n      <li class='nav-item'>\n        <span class='navbar-brand'>BookR</span>\n      </li>\n    </ul>\n    <ul class='nav navbar-nav pull-xs-right'>\n      <!-- and just like that, we've gone from hard-coded to dynamic -->\n      <li class='nav-item' >\n        <a class='nav-link' routerLink=\"/dashboard\">Dashboard</a>\n      </li>\n      <li class='nav-item' >\n        <a class='nav-link' routerLink=\"/cart\">Cart</a>\n      </li>\n\n    </ul>\n  </nav>\n</header>\n"
+module.exports = "<header>\n  <nav class='navbar navbar-sticky-top navbar-dark bg-inverse'>\n    <ul class='nav navbar-nav'>\n      <li class='nav-item'>\n        <span class='navbar-brand'>BookR</span>\n      </li>\n    </ul>\n    <ul class='nav navbar-nav pull-xs-right'>\n      <li class='nav-item' >\n        <a class='nav-link' routerLink=\"/dashboard\">Dashboard</a>\n      </li>\n      <li class='nav-item' >\n        <a class='nav-link' routerLink=\"/cart\">Cart</a>\n      </li>\n\n    </ul>\n  </nav>\n</header>\n"
 
 /***/ }),
 
@@ -378,7 +425,7 @@ var NavBarComponent = (function () {
     return NavBarComponent;
 }());
 NavBarComponent = __decorate([
-    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["_11" /* Component */])({
+    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["_14" /* Component */])({
         selector: 'app-nav-bar',
         template: __webpack_require__("../../../../../src/app/nav-bar/nav-bar.component.html"),
         styles: [__webpack_require__("../../../../../src/app/nav-bar/nav-bar.component.css")]
@@ -387,6 +434,65 @@ NavBarComponent = __decorate([
 ], NavBarComponent);
 
 //# sourceMappingURL=nav-bar.component.js.map
+
+/***/ }),
+
+/***/ "../../../../../src/app/services/BookService.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_http__ = __webpack_require__("../../../http/@angular/http.es5.js");
+/* unused harmony export Book */
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return BookService; });
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+
+var Book = (function () {
+    function Book(id, title, author, description, cover) {
+        this.id = id;
+        this.title = title;
+        this.author = author;
+        this.description = description;
+        this.cover = cover;
+    }
+    return Book;
+}());
+
+var BOOKS = [
+    new Book(11, 'Harry Potter', 'Rowling', 'Harry remegő kézzel megfordította a küldeményt.', 'http://books.google.com/books/content?id=bF19DAAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api'),
+    new Book(12, 'Harry Potter 2', 'Rowling', 'Harry Potter books', 'http://books.google.com/books/content?id=YvQ_AhkJpBUC&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api')
+];
+var BookService = (function () {
+    function BookService(http) {
+        this.http = http;
+        this.search_url = 'https://www.googleapis.com/books/v1/volumes';
+        this.bookPromise = Promise.resolve(BOOKS);
+    }
+    BookService.prototype.getBooks = function () {
+        return this.bookPromise;
+    };
+    BookService.prototype.getBook = function (id) {
+        return this.bookPromise
+            .then(function (books) { return books.find(function (book) { return book.id === +id; }); });
+    };
+    return BookService;
+}());
+BookService = __decorate([
+    __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["c" /* Injectable */])(),
+    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_http__["b" /* Http */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_http__["b" /* Http */]) === "function" && _a || Object])
+], BookService);
+
+var _a;
+//# sourceMappingURL=BookService.js.map
 
 /***/ }),
 
