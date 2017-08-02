@@ -84,7 +84,7 @@ AppComponent = __decorate([
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__nav_bar_nav_bar_component__ = __webpack_require__("../../../../../src/app/nav-bar/nav-bar.component.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__angular_forms__ = __webpack_require__("../../../forms/@angular/forms.es5.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__services_BookService__ = __webpack_require__("../../../../../src/app/services/BookService.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__angular_http__ = __webpack_require__("../../../http/@angular/http.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__angular_common_http__ = __webpack_require__("../../../common/@angular/common/http.es5.js");
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AppModule; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -120,7 +120,7 @@ AppModule = __decorate([
         ],
         imports: [
             __WEBPACK_IMPORTED_MODULE_0__angular_platform_browser__["a" /* BrowserModule */],
-            __WEBPACK_IMPORTED_MODULE_11__angular_http__["a" /* HttpModule */],
+            __WEBPACK_IMPORTED_MODULE_11__angular_common_http__["a" /* HttpClientModule */],
             __WEBPACK_IMPORTED_MODULE_6__angular_router__["a" /* RouterModule */].forRoot(__WEBPACK_IMPORTED_MODULE_7__app_routing__["a" /* appRoutes */]),
             __WEBPACK_IMPORTED_MODULE_9__angular_forms__["a" /* FormsModule */]
         ],
@@ -174,7 +174,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/bookdetails/bookdetails.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<p>\n  bookdetails works!\n</p>\n\n<p>{{book | json}}</p>\n"
+module.exports = "<div *ngIf=\"book\">\n\n\n  <div class=\"row\">\n    <div class=\"col-sm-2\">\n      <img src=\"{{book.cover}}\">\n    </div>\n    <div class=\"col-sm-10\">\n      <div>\n        <h2>{{book.title}}</h2>\n      </div>\n      <div>\n        {{book.authors}}\n      </div>\n      <div [innerHTML]=\"book.description\">\n\n      </div>\n    </div>\n\n\n  </div>\n\n\n</div>\n\n"
 
 /***/ }),
 
@@ -299,7 +299,7 @@ exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-b
 
 
 // module
-exports.push([module.i, "", ""]);
+exports.push([module.i, ".clickable {\r\n  cursor: pointer;\r\n}\r\n", ""]);
 
 // exports
 
@@ -312,7 +312,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/dashboard/dashboard.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<form>\n  <div class=\"form-group\">\n    <label for=\"search\">Search field:</label>\n    <input class=\"form-control\" id=\"search\" [(ngModel)]=\"values\" placeholder=\"Search\" name=\"search\">\n  </div>\n  <button class=\"btn btn-default\" (click)=\"search()\">Search!</button>\n</form>\n\n<p>Typing values: {{values}}</p>\n<p>Searched for: {{searchTerm}}</p>\n\n<div *ngIf=\"result\">\n  <ul class=\"list-group\">\n    <li class=\"list-group-item\" *ngFor=\"let book of books\" (click)=\"onSelect(book)\">\n      <h6><span class=\"badge\">{{ book.id }}</span>{{book.title}}</h6>\n      <p>{{book.author}}</p>\n\n    </li>\n  </ul>\n\n</div>\n"
+module.exports = "<form #searchForm=\"ngForm\" (ngSubmit)=\"searchBooks()\">\n  <div class=\"form-group\">\n    <label for=\"searchField\">Search field:</label>\n    <input required class=\"form-control\" id=\"searchField\" [(ngModel)]=\"values\" name=\"searchField\" #searchField=\"ngModel\" >\n\n    <div *ngIf=\"searchField.errors && (searchField.dirty || searchField.touched)\"\n         class=\"alert alert-danger\">\n      <div [hidden]=\"!searchField.errors.required\">\n        Please fill the search field!\n      </div>\n    </div>\n\n  </div>\n  <button class=\"btn btn-default\" [disabled]=\"!searchForm.form.valid\" >Search!</button>\n</form>\n<br>\n<div *ngIf=\"books\">\n  <ul class=\"list-group\">\n    <li class=\"list-group-item\" *ngFor=\"let book of books\">\n      <h3 ><a class=\"clickable\" (click)=\"onSelect(book)\">{{book.title}}</a></h3>\n      <p>{{book.authors}}</p>\n    </li>\n  </ul>\n</div>\n\n<div *ngIf=\"result && books.length == 0\">\n  <p>No results found!</p>\n</div>\n"
 
 /***/ }),
 
@@ -341,23 +341,20 @@ var DashboardComponent = (function () {
         this.bookService = bookService;
         this.router = router;
         this.values = '';
-        this.searchTerm = '';
         this.result = false;
         this.books = [];
     }
     DashboardComponent.prototype.ngOnInit = function () {
     };
-    DashboardComponent.prototype.search = function () {
-        this.searchTerm = this.values;
-        this.result = true;
-        this.getBooks();
-    };
-    DashboardComponent.prototype.getBooks = function () {
-        var _this = this;
-        this.bookService.getBooks().then(function (books) { return _this.books = books; });
+    DashboardComponent.prototype.searchBooks = function () {
+        this.getBooksFromApi(this.values);
     };
     DashboardComponent.prototype.onSelect = function (book) {
         this.router.navigate(['/book', book.id]);
+    };
+    DashboardComponent.prototype.getBooksFromApi = function (query) {
+        var _this = this;
+        this.bookService.getBooks(query).subscribe(function (results) { return _this.books = results || []; }, function () { return console.log("onError"); }, function () { return _this.result = _this.books.length === 0; });
     };
     return DashboardComponent;
 }());
@@ -441,7 +438,9 @@ NavBarComponent = __decorate([
 
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/@angular/core.es5.js");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_http__ = __webpack_require__("../../../http/@angular/http.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_common_http__ = __webpack_require__("../../../common/@angular/common/http.es5.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_map__ = __webpack_require__("../../../../rxjs/add/operator/map.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_map___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_rxjs_add_operator_map__);
 /* unused harmony export Book */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return BookService; });
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
@@ -455,39 +454,52 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 
 
+
 var Book = (function () {
-    function Book(id, title, author, description, cover) {
+    function Book(id, title, authors, description, cover) {
         this.id = id;
         this.title = title;
-        this.author = author;
+        this.authors = authors;
         this.description = description;
         this.cover = cover;
     }
     return Book;
 }());
 
-var BOOKS = [
-    new Book(11, 'Harry Potter', 'Rowling', 'Harry remegő kézzel megfordította a küldeményt.', 'http://books.google.com/books/content?id=bF19DAAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api'),
-    new Book(12, 'Harry Potter 2', 'Rowling', 'Harry Potter books', 'http://books.google.com/books/content?id=YvQ_AhkJpBUC&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api')
-];
 var BookService = (function () {
     function BookService(http) {
         this.http = http;
-        this.search_url = 'https://www.googleapis.com/books/v1/volumes';
-        this.bookPromise = Promise.resolve(BOOKS);
+        this.searchUrl = 'https://www.googleapis.com/books/v1/volumes';
+        this.oneBookUrl = 'https://www.googleapis.com/books/v1/volumes/';
     }
-    BookService.prototype.getBooks = function () {
-        return this.bookPromise;
-    };
     BookService.prototype.getBook = function (id) {
-        return this.bookPromise
-            .then(function (books) { return books.find(function (book) { return book.id === +id; }); });
+        var _this = this;
+        var apiUrl = this.oneBookUrl + id;
+        return this.http
+            .get(apiUrl)
+            .map(function (response) { return _this.createBook(response); });
+    };
+    BookService.prototype.getBooks = function (query) {
+        var _this = this;
+        var apiUrl = this.searchUrl + '?q=' + query.split(" ").join("+");
+        console.log(apiUrl);
+        return this.http
+            .get(apiUrl)
+            .map(function (response) { return _this.extractResult(response["items"]); });
+    };
+    BookService.prototype.extractResult = function (result) {
+        return result && result.map(this.createBook);
+    };
+    BookService.prototype.createBook = function (item) {
+        var volumeInfo = item.volumeInfo;
+        var imageLink = volumeInfo.imageLinks && volumeInfo.imageLinks.thumbnail;
+        return new Book(item.id, volumeInfo.title, volumeInfo.authors, volumeInfo.description, imageLink);
     };
     return BookService;
 }());
 BookService = __decorate([
     __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_0__angular_core__["c" /* Injectable */])(),
-    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_http__["b" /* Http */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_http__["b" /* Http */]) === "function" && _a || Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof __WEBPACK_IMPORTED_MODULE_1__angular_common_http__["b" /* HttpClient */] !== "undefined" && __WEBPACK_IMPORTED_MODULE_1__angular_common_http__["b" /* HttpClient */]) === "function" && _a || Object])
 ], BookService);
 
 var _a;
