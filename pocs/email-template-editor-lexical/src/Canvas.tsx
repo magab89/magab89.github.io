@@ -1,13 +1,16 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { compileText } from "./compile";
+import lockTagIcon from "./assets/icons/lock-tag.svg";
+import { compileText, escapeHtml } from "./compile";
 import { SlotEditor, type SlotEditorProps } from "./editor/SlotEditor";
-import { renderJinja } from "./render";
 import type { Doc, EditableText, Node } from "./types";
 
 const MARKER = /\[\[\s*([a-z][a-z0-9_]*)\s*\]\]/g;
+const VARIABLE = /\{\{\s*([a-z_][a-z0-9_]*)[^}]*\}\}/g;
+const CONDITION = /<!--editor:condition ([\s\S]*?)-->/g;
+const LOGIC = /\{%-?[\s\S]*?-?%\}/g;
 
-function canvasNode(node: Node, doc: Doc): string {
+function canvasNode(node: Node, doc: Doc, topLevel = false): string {
   return node.html.replace(MARKER, (_, name: string) => {
     const slot = node.slots[name];
     if (slot.kind === "text") {
@@ -16,12 +19,31 @@ function canvasNode(node: Node, doc: Doc): string {
       return `<${tag} class="slot-mount slot-mount-${slot.format}" data-slot="${node.id}.${name}"></${tag}>`;
     }
     if (slot.kind === "node") return canvasNode(slot.node, doc);
-    return slot.nodes.map((n) => canvasNode(n, doc)).join("");
+    return slot.nodes
+      .map((child) => {
+        const inner = canvasNode(child, doc);
+        if (!topLevel) return inner;
+        const locked = !JSON.stringify(child.slots).includes('"editable":true');
+        return locked
+          ? `<div class="blk blk-locked">${inner}<span class="lock-tag" title="Locked"><img src="${lockTagIcon}" width="11" height="11" alt="" /></span></div>`
+          : `<div class="blk">${inner}</div>`;
+      })
+      .join("");
   });
 }
 
-export function buildCanvasHtml(doc: Doc, samples: Record<string, string>): { html: string; error?: string } {
-  return renderJinja(canvasNode(doc.body, doc), samples);
+export function buildCanvasHtml(doc: Doc): string {
+  const labels = new Map(doc.variables.map((v) => [v.name, v.label]));
+  return canvasNode(doc.body, doc, true)
+    .replace(CONDITION, (_, text: string) => `<span class="cond-pill">${escapeHtml(text)}</span>`)
+    .replace(LOGIC, "")
+    .split(/(<[^>]*>)/)
+    .map((part) =>
+      part.startsWith("<")
+        ? part.replace(VARIABLE, "#")
+        : part.replace(VARIABLE, (_, name: string) => `<span class="ph-chip">${escapeHtml(labels.get(name) ?? name)}</span>`),
+    )
+    .join("");
 }
 
 type Props = Omit<SlotEditorProps, "address" | "slot" | "invalid"> & {
@@ -43,36 +65,26 @@ export function Canvas({ html, editables, invalidAddresses, ...editorProps }: Pr
     setMounts(found);
   }, [html]);
 
-  const editor = (e: EditableText) => (
-    <SlotEditor
-      key={e.address}
-      address={e.address}
-      slot={e.slot}
-      invalid={invalidAddresses.has(e.address)}
-      {...editorProps}
-    />
-  );
-
-  const hidden = mounts ? editables.filter((e) => !mounts[e.address]) : [];
-
   return (
     <>
-      <div ref={ref} className="email-canvas" dangerouslySetInnerHTML={markup} />
-      {mounts && editables.filter((e) => mounts[e.address]).map((e) => createPortal(editor(e), mounts[e.address], e.address))}
-      {hidden.length > 0 && (
-        <div className="hidden-slots">
-          <p className="hidden-slots-title">Not shown with the current sample values</p>
-          {hidden.map((e) => (
-            <div key={e.address} className="hidden-slot">
-              <p className="hidden-slot-label">
-                {e.label}
-                {e.description ? <span> · {e.description}</span> : null}
-              </p>
-              {editor(e)}
-            </div>
-          ))}
-        </div>
-      )}
+      <div ref={ref} className="email-body" dangerouslySetInnerHTML={markup} />
+      {mounts &&
+        editables
+          .filter((e) => mounts[e.address])
+          .map((e) =>
+            createPortal(
+              <SlotEditor
+                key={e.address}
+                address={e.address}
+                slot={e.slot}
+                label={e.label}
+                invalid={invalidAddresses.has(e.address)}
+                {...editorProps}
+              />,
+              mounts[e.address],
+              e.address,
+            ),
+          )}
     </>
   );
 }

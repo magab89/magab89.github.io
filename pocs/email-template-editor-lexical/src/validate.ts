@@ -21,8 +21,10 @@ export function validateDoc(doc: Doc): ValidationError[] {
     if (slot.required !== false && isBlankText(slot)) push("Can't be empty.");
     if (slot.maxLength && plainText.length > slot.maxLength) push(`Longer than ${slot.maxLength} characters.`);
 
-    for (const [, name] of plainText.matchAll(PLACEHOLDER)) {
-      if (!insertable.has(name)) push(`Unknown variable {{ ${name} }}.`);
+    if (!slot.content) {
+      for (const [, name] of plainText.matchAll(PLACEHOLDER)) {
+        if (!insertable.has(name)) push(`Unknown variable {{ ${name} }}.`);
+      }
     }
     const leftover = plainText.replace(PLACEHOLDER, "");
     if (/\{%|\{#|\{\{|\}\}/.test(leftover)) push("Template logic ({% %}, {# #} or a stray {{ }}) isn't allowed.");

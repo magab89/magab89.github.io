@@ -12,7 +12,7 @@ const SAFE_URL = /^(https?:|mailto:)/i;
 
 const ALLOWED_TYPES: Record<TextSlot["format"], Set<string>> = {
   plain: new Set(["root", "paragraph", "text", "variable"]),
-  rich: new Set(["root", "paragraph", "text", "variable", "linebreak", "list", "listitem", "link"]),
+  rich: new Set(["root", "paragraph", "heading", "text", "variable", "linebreak", "list", "listitem", "link"]),
 };
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -33,6 +33,8 @@ function richNode(n: LexNode): string {
       return inner();
     case "paragraph":
       return `<p>${inner() || "<br>"}</p>`;
+    case "heading":
+      return `<h3>${inner() || "<br>"}</h3>`;
     case "text":
       return wrap(Number(n.format) || 0, esc(String(n.text ?? "")));
     case "variable":
@@ -86,7 +88,7 @@ export function validateLexicalJson(json: unknown, format: TextSlot["format"], i
     errors.push("A one-line text must be exactly one paragraph.");
   }
   for (const child of root.children) {
-    if (child.type !== "paragraph" && child.type !== "list") errors.push(`"${child.type}" can't sit at the top level.`);
+    if (child.type !== "paragraph" && child.type !== "list" && child.type !== "heading") errors.push(`"${child.type}" can't sit at the top level.`);
   }
   for (const n of collect(root)) {
     if (!allowed.has(n.type)) {
@@ -98,8 +100,9 @@ export function validateLexicalJson(json: unknown, format: TextSlot["format"], i
       if (format === "plain" ? bits !== 0 : (bits & ~ALLOWED_FORMAT_BITS) !== 0) errors.push("Text formatting that isn't allowed.");
       if (n.style) errors.push("Inline styles aren't allowed.");
     }
-    if (n.type === "variable" && !insertable.has(String(n.variable))) errors.push(`Variable "${String(n.variable)}" isn't allowed.`);
+    if (n.type === "variable" && !insertable.has(String(n.variable))) errors.push(`{{ ${String(n.variable)} }} isn't available in this email.`);
     if (n.type === "link" && !SAFE_URL.test(String(n.url ?? ""))) errors.push(`Link "${String(n.url)}" must start with http, https or mailto.`);
+    if (n.type === "heading" && n.tag !== "h3") errors.push(`Heading level "${String(n.tag)}" isn't allowed.`);
     if (n.type === "list" && n.listType !== "bullet" && n.listType !== "number") errors.push(`List type "${String(n.listType)}" isn't allowed.`);
   }
   return [...new Set(errors)];

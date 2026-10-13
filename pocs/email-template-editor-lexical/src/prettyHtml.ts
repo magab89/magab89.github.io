@@ -150,3 +150,15 @@ export function highlightHtml(code: string): string {
     })
     .join("");
 }
+
+export function highlightJson(code: string): string {
+  return esc(code).replace(
+    /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+    (match, str: string | undefined, colon: string | undefined, literal: string | undefined, num: string | undefined) => {
+      if (str) return colon ? `<span class="hl-key">${str}</span>${colon}` : `<span class="hl-str">${str}</span>`;
+      if (literal) return `<span class="hl-lit">${literal}</span>`;
+      if (num) return `<span class="hl-num">${num}</span>`;
+      return match;
+    },
+  );
+}

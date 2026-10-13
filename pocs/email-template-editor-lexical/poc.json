@@ -1,6 +1,6 @@
 {
   "title": "Email template editor: Lexical",
-  "description": "Locked email layout with small Lexical editors in the editable text slots. Editable texts are stored as Lexical JSON; Save produces Jinja-ready HTML plus a reloadable JSON doc.",
+  "description": "Email template editor built to the first Figma design: locked layout, Lexical editors in the editable slots, variable chips. Saves one JSON record with the reloadable structure and Jinja-ready HTML; simulated database, import and send.",
   "date": "2026-10-13",
   "tags": [
     "lexical",

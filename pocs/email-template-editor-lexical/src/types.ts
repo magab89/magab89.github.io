@@ -1,6 +1,6 @@
 import type { LexicalJson } from "./lexicalJson";
 
-export type Tag = "p" | "a" | "ul" | "ol" | "li" | "strong" | "em" | "u" | "s";
+export type Tag = "p" | "h3" | "a" | "ul" | "ol" | "li" | "strong" | "em" | "u" | "s";
 
 export type TagStyles = Partial<Record<Tag, string>>;
 
@@ -51,9 +51,34 @@ export type Variable = {
   fallback?: string;
 };
 
+export type TemplateMeta = {
+  kind: string;
+  purpose: string;
+  sentTo: string;
+  access: "System default" | "Account template";
+  createdBy: string;
+  updatedAt: string;
+  basedOn: number | null;
+};
+
 export type EmailDefinition = {
   slug: string;
   name: string;
+  description: string;
+  purpose: string;
+  sentTo: string;
+  doc: Doc;
+};
+
+export type TemplateRecord = {
+  schemaVersion: 2;
+  id: number | null;
+  templateType: string;
+  name: string;
+  description: string;
+  meta: TemplateMeta;
+  subject: string;
+  body: string;
   doc: Doc;
 };
 

@@ -1,9 +1,11 @@
 import DOMPurify from "dompurify";
+import { prettyHtml } from "./prettyHtml";
 import type { Doc, Node, Slot, TagStyles, Template, TextSlot, Variable } from "./types";
 
 const MARKER = /\[\[\s*([a-z][a-z0-9_]*)\s*\]\]/g;
 const PLACEHOLDER = /\{\{\s*([a-z][a-z0-9_]*)\s*\}\}/g;
-const RICH_TAGS = ["p", "br", "strong", "em", "u", "s", "a", "ul", "ol", "li"];
+const RICH_TAGS = ["p", "h3", "br", "strong", "em", "u", "s", "a", "ul", "ol", "li"];
+const EDITOR_COMMENT = /<!--editor:[\s\S]*?-->/g;
 
 export const escapeHtml = (s: string) =>
   s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -75,7 +77,7 @@ export function compileTemplate(doc: Doc): Template {
   return {
     schemaVersion: 2,
     subject: compileText(doc.subject, doc),
-    body: compileNode(doc.body, doc),
+    body: prettyHtml(compileNode(doc.body, doc).replace(EDITOR_COMMENT, "")),
     doc,
   };
 }

@@ -1,5 +1,6 @@
 import { $isLinkNode } from "@lexical/link";
 import { $isListItemNode, $isListNode } from "@lexical/list";
+import { $isHeadingNode } from "@lexical/rich-text";
 import {
   $getRoot,
   $isElementNode,
@@ -29,6 +30,7 @@ function serializeNode(node: LexicalNode): string {
 
   const inner = node.getChildren().map(serializeNode).join("");
   if ($isParagraphNode(node)) return `<p>${inner || "<br>"}</p>`;
+  if ($isHeadingNode(node)) return `<h3>${inner || "<br>"}</h3>`;
   if ($isListNode(node)) {
     const tag = node.getListType() === "number" ? "ol" : "ul";
     const items: string[] = [];

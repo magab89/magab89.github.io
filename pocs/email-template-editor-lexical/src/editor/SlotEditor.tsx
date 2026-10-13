@@ -32,13 +32,14 @@ const theme = {
 export type SlotEditorProps = {
   address: string;
   slot: TextSlot;
+  label?: string;
   variables: Variable[];
   invalid: boolean;
   onChange: (address: string, content: LexicalJson) => void;
   onFocus: (address: string, editor: LexicalEditor, format: TextSlot["format"]) => void;
 };
 
-export function SlotEditor({ address, slot, variables, invalid, onChange, onFocus }: SlotEditorProps) {
+export function SlotEditor({ address, slot, label, variables, invalid, onChange, onFocus }: SlotEditorProps) {
   const rich = slot.format === "rich";
   const [length, setLength] = useState(0);
 
@@ -55,10 +56,14 @@ export function SlotEditor({ address, slot, variables, invalid, onChange, onFocu
     [address, slot.format],
   );
 
+  const name = (label ?? slot.label ?? address).toLowerCase();
+  const hint = slot.required === false ? `Add a ${name} (optional)` : `Add a ${name}`;
   const content = (
     <ContentEditable
       className={`slot-input ${rich ? "slot-input-rich" : "slot-input-plain"}`}
-      aria-label={slot.label ?? address}
+      aria-label={label ?? slot.label ?? address}
+      aria-placeholder={hint}
+      placeholder={<span className="slot-placeholder">{hint}</span>}
     />
   );
 
