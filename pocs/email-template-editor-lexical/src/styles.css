@@ -785,3 +785,65 @@ pre {
   justify-content: flex-end;
   margin-top: 8px;
 }
+
+.code-view {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.code-copy {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
+}
+
+pre.code {
+  white-space: pre;
+  word-break: normal;
+  overflow: auto;
+  line-height: 1.55;
+  padding-right: 64px;
+  tab-size: 2;
+}
+
+pre.code.tall {
+  max-height: 640px;
+}
+
+.hl-tag {
+  color: #7c3aed;
+}
+
+.hl-attr {
+  color: #b45309;
+}
+
+.hl-str {
+  color: #047857;
+}
+
+.hl-jinja {
+  color: #be185d;
+  font-weight: 600;
+}
+
+.hl-comment {
+  color: var(--muted);
+  font-style: italic;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .hl-tag {
+    color: #c4b5fd;
+  }
+  :root:not([data-theme="light"]) .hl-attr {
+    color: #fcd34d;
+  }
+  :root:not([data-theme="light"]) .hl-str {
+    color: #6ee7b7;
+  }
+  :root:not([data-theme="light"]) .hl-jinja {
+    color: #f9a8d4;
+  }
+}

@@ -7,6 +7,7 @@ import { lexicalJsonToHtmlViaLexical } from "./editor/headless";
 import { SlotEditor } from "./editor/SlotEditor";
 import { Toolbar, type ActiveSlot } from "./editor/Toolbar";
 import { lexicalJsonToHtml, type LexicalJson, type LexNode } from "./lexicalJson";
+import { highlightHtml, prettyHtml } from "./prettyHtml";
 import { renderJinja } from "./render";
 import {
   buildPayload,
@@ -272,7 +273,7 @@ export function App() {
               />
             )}
             {tab === "json" && <JsonPanel editables={editables} />}
-            {tab === "jinja" && <JinjaPanel subject={template.subject} body={template.body} />}
+            {tab === "jinja" && <JinjaPanel subject={template.subject} body={template.body} samples={samples} />}
             {tab === "rule" && <RulePanel slug={slug} working={doc} />}
             {tab === "saved" && (
               <SavedPanel
@@ -417,18 +418,53 @@ function countNodes(n: LexNode): number {
   return 1 + (n.children ?? []).reduce((sum, c) => sum + countNodes(c), 0);
 }
 
-function JinjaPanel({ subject, body }: { subject: string; body: string }) {
+function JinjaPanel({ subject, body, samples }: { subject: string; body: string; samples: Record<string, string> }) {
+  const [mode, setMode] = useState<"template" | "rendered">("template");
+  const rendered = useMemo(() => (mode === "rendered" ? renderJinja(body, samples) : null), [mode, body, samples]);
+  const renderedSubject = mode === "rendered" ? renderJinja(subject, samples) : null;
   return (
     <>
       <p className="hint">
-        The compiled template that gets stored next to the doc. Sending renders this as-is, so nothing is built at send time. Rich
-        text gets inline styles per tag, and variables with a fallback get a <code>default()</code> filter.
+        {mode === "template"
+          ? "The compiled template stored next to the doc. Sending renders this as-is, so nothing is built at send time. Rich text gets inline styles per tag, and variables with a fallback get a default() filter."
+          : "The same template rendered with the sample values, which is the HTML an email client would receive."}
       </p>
+      <div className="segmented small-seg" role="tablist" aria-label="Jinja view">
+        <button role="tab" aria-selected={mode === "template"} onClick={() => setMode("template")}>
+          Jinja template
+        </button>
+        <button role="tab" aria-selected={mode === "rendered"} onClick={() => setMode("rendered")}>
+          Rendered with samples
+        </button>
+      </div>
       <p className="value-label">subject</p>
-      <pre>{subject}</pre>
+      <CodeView code={mode === "template" ? subject : (renderedSubject?.html ?? renderedSubject?.error ?? "")} />
       <p className="value-label">body</p>
-      <pre className="wrap">{prettyHtml(body)}</pre>
+      {rendered?.error ? (
+        <p className="render-error">Render failed: {rendered.error}</p>
+      ) : (
+        <CodeView code={prettyHtml(mode === "template" ? body : (rendered?.html ?? ""))} tall />
+      )}
     </>
+  );
+}
+
+function CodeView({ code, tall }: { code: string; tall?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const html = useMemo(() => ({ __html: highlightHtml(code) }), [code]);
+  const copy = () => {
+    navigator.clipboard?.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    });
+  };
+  return (
+    <div className="code-view">
+      <button className="ghost small code-copy" onClick={copy}>
+        {copied ? "Copied" : "Copy"}
+      </button>
+      <pre className={`code${tall ? " tall" : ""}`} dangerouslySetInnerHTML={html} />
+    </div>
   );
 }
 
@@ -599,7 +635,7 @@ function SavedPanel({
               </button>
             ))}
           </div>
-          <pre className="row-json">{shownText}</pre>
+          <CodeView code={shownText} tall />
           <button className="ghost small" onClick={() => navigator.clipboard?.writeText(JSON.stringify(shown, null, 2))}>
             Copy row JSON
           </button>
@@ -632,8 +668,4 @@ function SavedPanel({
 function topNodes(doc: Doc): Node[] {
   const content: Slot | undefined = doc.body.slots.content;
   return content?.kind === "nodes" ? content.nodes : [];
-}
-
-function prettyHtml(html: string): string {
-  return html.replace(/(<\/(?:p|div|table|tr|ul|ol|li)>|<br \/>|<hr[^>]*>|\{% endif %\})/g, "$1\n");
 }
