@@ -24,14 +24,13 @@ export function buildCanvasHtml(doc: Doc, samples: Record<string, string>): { ht
   return renderJinja(canvasNode(doc.body, doc), samples);
 }
 
-type Props = Omit<SlotEditorProps, "address" | "slot" | "initialValue" | "invalid"> & {
+type Props = Omit<SlotEditorProps, "address" | "slot" | "invalid"> & {
   html: string;
   editables: EditableText[];
-  values: Record<string, string>;
   invalidAddresses: Set<string>;
 };
 
-export function Canvas({ html, editables, values, invalidAddresses, ...editorProps }: Props) {
+export function Canvas({ html, editables, invalidAddresses, ...editorProps }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [mounts, setMounts] = useState<Record<string, HTMLElement> | null>(null);
   const markup = useMemo(() => ({ __html: html }), [html]);
@@ -49,7 +48,6 @@ export function Canvas({ html, editables, values, invalidAddresses, ...editorPro
       key={e.address}
       address={e.address}
       slot={e.slot}
-      initialValue={values[e.address] ?? e.slot.value}
       invalid={invalidAddresses.has(e.address)}
       {...editorProps}
     />

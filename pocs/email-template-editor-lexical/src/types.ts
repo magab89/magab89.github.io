@@ -1,9 +1,11 @@
+import type { LexicalJson } from "./lexicalJson";
+
 export type Tag = "p" | "a" | "ul" | "ol" | "li" | "strong" | "em" | "u" | "s";
 
 export type TagStyles = Partial<Record<Tag, string>>;
 
 export type Template = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   subject: string;
   body: string;
   doc: Doc;
@@ -30,6 +32,7 @@ export type TextSlot = {
   format: "plain" | "rich";
   editable: boolean;
   value: string;
+  content?: LexicalJson;
   label?: string;
   required?: boolean;
   maxLength?: number;

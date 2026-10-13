@@ -1,5 +1,6 @@
 import { isBlankText } from "./compile";
 import { listEditableTexts } from "./doc";
+import { validateLexicalJson } from "./lexicalJson";
 import type { Doc } from "./types";
 
 export type ValidationError = { address: string; label: string; message: string };
@@ -11,7 +12,10 @@ export function validateDoc(doc: Doc): ValidationError[] {
   const insertable = new Set(doc.variables.filter((v) => v.insertable).map((v) => v.name));
 
   for (const { address, label, slot } of listEditableTexts(doc)) {
-    const push = (message: string) => errors.push({ address, label, message });
+    const push = (message: string) => {
+      if (!errors.some((e) => e.address === address && e.message === message)) errors.push({ address, label, message });
+    };
+    if (slot.content) validateLexicalJson(slot.content, slot.format, insertable).forEach(push);
     const plainText = slot.format === "rich" ? textOf(slot.value) : slot.value;
 
     if (slot.required !== false && isBlankText(slot)) push("Can't be empty.");

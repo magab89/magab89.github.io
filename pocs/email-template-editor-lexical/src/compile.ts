@@ -73,7 +73,7 @@ export function compileNode(node: Node, doc: Doc): string {
 
 export function compileTemplate(doc: Doc): Template {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     subject: compileText(doc.subject, doc),
     body: compileNode(doc.body, doc),
     doc,

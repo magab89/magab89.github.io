@@ -31,7 +31,14 @@ function serializeNode(node: LexicalNode): string {
   if ($isParagraphNode(node)) return `<p>${inner || "<br>"}</p>`;
   if ($isListNode(node)) {
     const tag = node.getListType() === "number" ? "ol" : "ul";
-    return `<${tag}>${inner}</${tag}>`;
+    const items: string[] = [];
+    for (const item of node.getChildren()) {
+      const html = serializeNode(item);
+      const nestedOnly = $isElementNode(item) && item.getChildrenSize() > 0 && item.getChildren().every($isListNode);
+      if (nestedOnly && items.length) items[items.length - 1] = items[items.length - 1].replace(/<\/li>$/, `${html.slice(4, -5)}</li>`);
+      else items.push(html);
+    }
+    return `<${tag}>${items.join("")}</${tag}>`;
   }
   if ($isListItemNode(node)) return `<li>${inner}</li>`;
   if ($isLinkNode(node)) return `<a href="${escapeHtml(node.getURL())}">${inner}</a>`;

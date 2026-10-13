@@ -1,6 +1,10 @@
 {
   "title": "Email template editor: Lexical",
-  "description": "Locked email layout with small Lexical editors mounted only in the editable text slots. Shows variable chips, clean HTML export, compile to Jinja, and a live preview.",
+  "description": "Locked email layout with small Lexical editors in the editable text slots. Editable texts are stored as Lexical JSON; Save produces Jinja-ready HTML plus a reloadable JSON doc.",
   "date": "2026-10-13",
-  "tags": ["lexical", "react", "email"]
+  "tags": [
+    "lexical",
+    "react",
+    "email"
+  ]
 }

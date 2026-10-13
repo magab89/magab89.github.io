@@ -1,6 +1,3 @@
-import { $generateNodesFromDOM } from "@lexical/html";
-import { LinkNode } from "@lexical/link";
-import { ListItemNode, ListNode } from "@lexical/list";
 import { LexicalComposer, type InitialConfigType } from "@lexical/react/LexicalComposer";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -11,28 +8,19 @@ import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { $unwrapNode, mergeRegister } from "@lexical/utils";
 import {
-  $createParagraphNode,
-  $createTextNode,
   $getRoot,
-  $isElementNode,
   COMMAND_PRIORITY_HIGH,
   COMMAND_PRIORITY_LOW,
   FOCUS_COMMAND,
   KEY_ENTER_COMMAND,
-  LineBreakNode,
-  TextNode,
   type LexicalEditor,
-  type LexicalNode,
 } from "lexical";
 import { useEffect, useMemo, useState } from "react";
+import type { LexicalJson } from "../lexicalJson";
 import type { TextSlot, Variable } from "../types";
-import { $serializePlain, $serializeRich } from "./serialize";
-import { $createVariableNode, VariableNode } from "./VariableNode";
-
-const PLACEHOLDER = /\{\{\s*([a-z][a-z0-9_]*)\s*\}\}/g;
-const SAFE_URL = /^(https?:|mailto:)/i;
+import { $loadValue } from "./headless";
+import { nodesFor, registerSlotRules, SAFE_URL } from "./rules";
 
 const theme = {
   paragraph: "ed-p",
@@ -44,14 +32,13 @@ const theme = {
 export type SlotEditorProps = {
   address: string;
   slot: TextSlot;
-  initialValue: string;
   variables: Variable[];
   invalid: boolean;
-  onChange: (address: string, value: string) => void;
+  onChange: (address: string, content: LexicalJson) => void;
   onFocus: (address: string, editor: LexicalEditor, format: TextSlot["format"]) => void;
 };
 
-export function SlotEditor({ address, slot, initialValue, variables, invalid, onChange, onFocus }: SlotEditorProps) {
+export function SlotEditor({ address, slot, variables, invalid, onChange, onFocus }: SlotEditorProps) {
   const rich = slot.format === "rich";
   const [length, setLength] = useState(0);
 
@@ -59,11 +46,13 @@ export function SlotEditor({ address, slot, initialValue, variables, invalid, on
     () => ({
       namespace: `slot-${address}`,
       theme,
-      nodes: rich ? [ListNode, ListItemNode, LinkNode, VariableNode] : [VariableNode],
+      nodes: nodesFor(slot.format),
       onError: (e) => console.error(e),
-      editorState: (editor) => (rich ? $loadRich(editor, initialValue) : $loadPlain(initialValue)),
+      editorState: slot.content
+        ? JSON.stringify(slot.content)
+        : (editor: LexicalEditor) => $loadValue(editor, slot.value, slot.format),
     }),
-    [address, rich],
+    [address, slot.format],
   );
 
   const content = (
@@ -88,108 +77,42 @@ export function SlotEditor({ address, slot, initialValue, variables, invalid, on
         ) : null}
       </span>
       <HistoryPlugin />
-      {rich ? <ListPlugin /> : <SingleLinePlugin />}
+      {rich ? <ListPlugin /> : <BlockEnterPlugin />}
       {rich ? <LinkPlugin validateUrl={(url) => SAFE_URL.test(url)} /> : null}
-      {rich ? <SafeLinksPlugin /> : null}
-      <VariableChipsPlugin variables={variables} />
+      <SlotRulesPlugin format={slot.format} variables={variables} />
       <FocusTrackerPlugin address={address} format={slot.format} onFocus={onFocus} />
       <OnChangePlugin
         ignoreSelectionChange
-        onChange={(state) =>
-          state.read(() => {
-            const value = rich ? $serializeRich() : $serializePlain();
-            setLength($getRoot().getTextContent().length);
-            onChange(address, value);
-          })
-        }
+        onChange={(state) => {
+          setLength(state.read(() => $getRoot().getTextContent().length));
+          onChange(address, state.toJSON() as unknown as LexicalJson);
+        }}
       />
     </LexicalComposer>
   );
 }
 
-function $loadPlain(value: string) {
-  const paragraph = $createParagraphNode();
-  if (value) paragraph.append($createTextNode(value));
-  $getRoot().clear().append(paragraph);
-}
-
-function $loadRich(editor: LexicalEditor, value: string) {
-  const root = $getRoot().clear();
-  const dom = new DOMParser().parseFromString(value || "<p></p>", "text/html");
-  let loose: LexicalNode[] = [];
-  const flush = () => {
-    if (loose.length) root.append($createParagraphNode().append(...loose));
-    loose = [];
-  };
-  for (const node of $generateNodesFromDOM(editor, dom)) {
-    if ($isElementNode(node) && !node.isInline()) {
-      flush();
-      root.append(node);
-    } else {
-      loose.push(node);
-    }
-  }
-  flush();
-  if (root.getChildrenSize() === 0) root.append($createParagraphNode());
-}
-
-function VariableChipsPlugin({ variables }: { variables: Variable[] }) {
+function SlotRulesPlugin({ format, variables }: { format: TextSlot["format"]; variables: Variable[] }) {
   const [editor] = useLexicalComposerContext();
   useEffect(() => {
-    const allowed = new Map(variables.filter((v) => v.insertable).map((v) => [v.name, v]));
-    const unregister = editor.registerNodeTransform(TextNode, (node) => {
-      if (!node.isSimpleText()) return;
-      const text = node.getTextContent();
-      for (const match of text.matchAll(PLACEHOLDER)) {
-        const variable = allowed.get(match[1]);
-        if (!variable) continue;
-        const start = match.index!;
-        const end = start + match[0].length;
-        let target: TextNode = node;
-        if (start > 0 || end < text.length) {
-          const parts = node.splitText(start, end);
-          target = start === 0 ? parts[0] : parts[1];
-        }
-        const chip = $createVariableNode(variable.name, variable.label);
-        chip.setFormat(target.getFormat());
-        target.replace(chip);
-        return;
-      }
-    });
+    const unregister = registerSlotRules(editor, format, variables);
     editor.update(() => $getRoot().getAllTextNodes().forEach((n) => n.markDirty()), { tag: "historic" });
     return unregister;
-  }, [editor, variables]);
+  }, [editor, format, variables]);
   return null;
 }
 
-function SafeLinksPlugin() {
+function BlockEnterPlugin() {
   const [editor] = useLexicalComposerContext();
   useEffect(
     () =>
-      editor.registerNodeTransform(LinkNode, (node) => {
-        if (!SAFE_URL.test(node.getURL().trim())) $unwrapNode(node);
-      }),
-    [editor],
-  );
-  return null;
-}
-
-function SingleLinePlugin() {
-  const [editor] = useLexicalComposerContext();
-  useEffect(
-    () =>
-      mergeRegister(
-        editor.registerCommand(
-          KEY_ENTER_COMMAND,
-          (event) => {
-            event?.preventDefault();
-            return true;
-          },
-          COMMAND_PRIORITY_HIGH,
-        ),
-        editor.registerNodeTransform(LineBreakNode, (node) => {
-          node.replace($createTextNode(" "));
-        }),
+      editor.registerCommand(
+        KEY_ENTER_COMMAND,
+        (event) => {
+          event?.preventDefault();
+          return true;
+        },
+        COMMAND_PRIORITY_HIGH,
       ),
     [editor],
   );
