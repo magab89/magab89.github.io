@@ -26,6 +26,7 @@ import {
   $getEmailNode,
   $isEmailNode,
   $getSlots,
+  $blockInfo,
   $isGroupNode,
   $structure,
   EmailNode,
@@ -33,6 +34,7 @@ import {
   LockedBlockNode,
   SlotNode,
 } from "./emailNodes";
+import { blockConditions } from "../slotRules";
 import { $createVariableNode, VariableNode } from "./VariableNode";
 
 export const EMAIL_NODES: Klass<LexicalNode>[] = [
@@ -147,9 +149,17 @@ export function registerContentRules(editor: LexicalEditor) {
   );
 }
 
+const ignoreLockedSlotPress = (event: MouseEvent) => {
+  if (event.target instanceof Element && event.target.closest(".email-slot-locked")) event.preventDefault();
+};
+
 export function registerEditingBehaviour(editor: LexicalEditor, onRejected: () => void) {
   const expected = editor.getEditorState().read($structure);
   return mergeRegister(
+    editor.registerRootListener((root, previous) => {
+      previous?.removeEventListener("mousedown", ignoreLockedSlotPress);
+      root?.addEventListener("mousedown", ignoreLockedSlotPress);
+    }),
     editor.registerNodeTransform(RootNode, () => {
       if ($structure() === expected) return;
       $restoreEditorState(editor, editor.getEditorState());
@@ -161,7 +171,7 @@ export function registerEditingBehaviour(editor: LexicalEditor, onRejected: () =
         const sel = $getSelection();
         if (!$isRangeSelection(sel)) return false;
         const slot = $findSlot(sel.anchor.getNode());
-        if (slot && slot.getAttrs().slotFormat === "rich") return false;
+        if (slot && slot.isEditable() && slot.getAttrs().slotFormat === "rich") return false;
         event?.preventDefault();
         return true;
       },
@@ -182,6 +192,18 @@ export function registerEditingBehaviour(editor: LexicalEditor, onRejected: () =
         $getSlots().forEach((child) => {
           const empty = child.getTextContent().trim() === "" && !child.getAllTextNodes().some((n) => n instanceof VariableNode);
           editor.getElementByKey(child.getKey())?.classList.toggle("is-empty", empty);
+        });
+        const email = $getEmailNode();
+        if (!email) return;
+        const blocks = email.getChildren();
+        const targets = blocks.flatMap((b) => ($isGroupNode(b) ? b.getChildren() : [b]));
+        const conditions = blockConditions(blocks.map($blockInfo), email.getVariables().map((v) => v.name));
+        targets.forEach((node, i) => {
+          const element = editor.getElementByKey(node.getKey());
+          if (!element) return;
+          const condition = conditions[i];
+          if (condition) element.dataset.condition = condition;
+          else delete element.dataset.condition;
         });
       });
     }),

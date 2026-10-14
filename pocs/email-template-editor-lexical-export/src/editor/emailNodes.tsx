@@ -1,6 +1,7 @@
 import {
   $applyNodeReplacement,
   $getRoot,
+  $isElementNode,
   DecoratorNode,
   ElementNode,
   type LexicalNode,
@@ -10,39 +11,39 @@ import {
   type Spread,
 } from "lexical";
 import type { JSX } from "react";
-import type { SlotFormat, TagStyles, Variable } from "../types";
+import type { LexNode } from "../lexicalJson";
+import { contentSignature, isButton, slotPlaceholder, type BlockInfo } from "../slotRules";
+import type { SlotFormat, Variable } from "../types";
 import { LockedBlockView } from "./LockedBlockView";
 
 export const CONTENT_MARKER = "[[content]]";
 
-export type SerializedEmailNode = Spread<{ frame: string; variables: Variable[]; textStyles: TagStyles }, SerializedElementNode>;
+export type SerializedEmailNode = Spread<{ frame: string; variables: Variable[] }, SerializedElementNode>;
 
 export class EmailNode extends ElementNode {
   __frame: string;
   __variables: Variable[];
-  __textStyles: TagStyles;
 
   static getType(): string {
     return "email";
   }
 
   static clone(node: EmailNode): EmailNode {
-    return new EmailNode(node.__frame, node.__variables, node.__textStyles, node.__key);
+    return new EmailNode(node.__frame, node.__variables, node.__key);
   }
 
-  constructor(frame: string, variables: Variable[], textStyles: TagStyles, key?: NodeKey) {
+  constructor(frame: string, variables: Variable[], key?: NodeKey) {
     super(key);
     this.__frame = frame;
     this.__variables = variables;
-    this.__textStyles = textStyles;
   }
 
   static importJSON(json: SerializedEmailNode): EmailNode {
-    return $createEmailNode(json.frame, json.variables, json.textStyles).updateFromJSON(json);
+    return $createEmailNode(json.frame, json.variables).updateFromJSON(json);
   }
 
   exportJSON(): SerializedEmailNode {
-    return { ...super.exportJSON(), frame: this.__frame, variables: this.__variables, textStyles: this.__textStyles };
+    return { ...super.exportJSON(), frame: this.__frame, variables: this.__variables };
   }
 
   createDOM(): HTMLElement {
@@ -63,10 +64,6 @@ export class EmailNode extends ElementNode {
     return this.getLatest().__frame;
   }
 
-  getTextStyles(): TagStyles {
-    return this.getLatest().__textStyles;
-  }
-
   canBeEmpty(): false {
     return false;
   }
@@ -78,35 +75,14 @@ export class EmailNode extends ElementNode {
 
 export type SlotAttrs = {
   slotId: string;
-  label: string;
   slotFormat: SlotFormat;
-  required: boolean;
-  maxLength: number | null;
+  editable: boolean;
   wrapper: string;
-  prefix: string;
-  suffix: string;
-  blockStyle: string;
-  condition: string | null;
-  dropIfEmpty: boolean;
-  look: "text" | "button";
 };
 
 export type SerializedSlotNode = Spread<SlotAttrs, SerializedElementNode>;
 
-const SLOT_KEYS = [
-  "slotId",
-  "label",
-  "slotFormat",
-  "required",
-  "maxLength",
-  "wrapper",
-  "prefix",
-  "suffix",
-  "blockStyle",
-  "condition",
-  "dropIfEmpty",
-  "look",
-] as const;
+const SLOT_KEYS = ["slotId", "slotFormat", "editable", "wrapper"] as const;
 
 export class SlotNode extends ElementNode {
   __attrs: SlotAttrs;
@@ -135,12 +111,13 @@ export class SlotNode extends ElementNode {
 
   createDOM(): HTMLElement {
     const a = this.__attrs;
+    const button = isButton(a.wrapper);
     const dom = document.createElement("div");
-    dom.className = `email-slot email-slot-${a.slotFormat}${a.look === "button" ? " email-slot-button" : ""}`;
+    dom.className = `email-slot email-slot-${a.slotFormat}${button ? " email-slot-button" : ""}${a.editable ? "" : " email-slot-locked"}`;
     dom.dataset.slot = a.slotId;
-    dom.dataset.placeholder = a.required ? `Add a ${a.label.toLowerCase()}` : `Add a ${a.label.toLowerCase()} (optional)`;
-    if (a.condition) dom.dataset.condition = a.condition;
-    const style = a.slotFormat === "rich" ? displayStyle(a.blockStyle) : displayStyle(innermostStyle(a.wrapper) ?? "", a.look === "button");
+    dom.dataset.placeholder = slotPlaceholder(a);
+    if (!a.editable) dom.contentEditable = "false";
+    const style = displayStyle(innermostStyle(a.wrapper) ?? "", button);
     if (style) dom.style.cssText = style;
     return dom;
   }
@@ -151,6 +128,10 @@ export class SlotNode extends ElementNode {
 
   getAttrs(): SlotAttrs {
     return this.getLatest().__attrs;
+  }
+
+  isEditable(): boolean {
+    return this.getLatest().__attrs.editable;
   }
 
   isShadowRoot(): true {
@@ -223,36 +204,32 @@ export class GroupNode extends ElementNode {
   }
 }
 
-export type SerializedLockedBlockNode = Spread<{ blockId: string; label: string; html: string; condition: string | null }, SerializedLexicalNode>;
+export type SerializedLockedBlockNode = Spread<{ blockId: string; html: string }, SerializedLexicalNode>;
 
 export class LockedBlockNode extends DecoratorNode<JSX.Element> {
   __blockId: string;
-  __label: string;
   __html: string;
-  __condition: string | null;
 
   static getType(): string {
     return "email-locked";
   }
 
   static clone(node: LockedBlockNode): LockedBlockNode {
-    return new LockedBlockNode(node.__blockId, node.__label, node.__html, node.__condition, node.__key);
+    return new LockedBlockNode(node.__blockId, node.__html, node.__key);
   }
 
-  constructor(blockId: string, label: string, html: string, condition: string | null, key?: NodeKey) {
+  constructor(blockId: string, html: string, key?: NodeKey) {
     super(key);
     this.__blockId = blockId;
-    this.__label = label;
     this.__html = html;
-    this.__condition = condition;
   }
 
   static importJSON(json: SerializedLockedBlockNode): LockedBlockNode {
-    return $createLockedBlockNode(json.blockId, json.label, json.html, json.condition ?? null).updateFromJSON(json);
+    return $createLockedBlockNode(json.blockId, json.html).updateFromJSON(json);
   }
 
   exportJSON(): SerializedLockedBlockNode {
-    return { ...super.exportJSON(), blockId: this.__blockId, label: this.__label, html: this.__html, condition: this.__condition };
+    return { ...super.exportJSON(), blockId: this.__blockId, html: this.__html };
   }
 
   createDOM(): HTMLElement {
@@ -274,10 +251,6 @@ export class LockedBlockNode extends DecoratorNode<JSX.Element> {
     return this.getLatest().__html;
   }
 
-  getCondition(): string | null {
-    return this.getLatest().__condition;
-  }
-
   isInline(): false {
     return false;
   }
@@ -287,12 +260,12 @@ export class LockedBlockNode extends DecoratorNode<JSX.Element> {
   }
 
   decorate(): JSX.Element {
-    return <LockedBlockView html={this.__html} condition={this.__condition} />;
+    return <LockedBlockView html={this.__html} />;
   }
 }
 
-export function $createEmailNode(frame: string, variables: Variable[], textStyles: TagStyles): EmailNode {
-  return $applyNodeReplacement(new EmailNode(frame, variables, textStyles));
+export function $createEmailNode(frame: string, variables: Variable[]): EmailNode {
+  return $applyNodeReplacement(new EmailNode(frame, variables));
 }
 
 export function $createSlotNode(attrs: SlotAttrs): SlotNode {
@@ -303,8 +276,8 @@ export function $createGroupNode(groupId: string, wrapper: string): GroupNode {
   return $applyNodeReplacement(new GroupNode(groupId, wrapper));
 }
 
-export function $createLockedBlockNode(blockId: string, label: string, html: string, condition: string | null = null): LockedBlockNode {
-  return $applyNodeReplacement(new LockedBlockNode(blockId, label, html, condition));
+export function $createLockedBlockNode(blockId: string, html: string): LockedBlockNode {
+  return $applyNodeReplacement(new LockedBlockNode(blockId, html));
 }
 
 export const $isEmailNode = (n: LexicalNode | null | undefined): n is EmailNode => n instanceof EmailNode;
@@ -323,9 +296,16 @@ export function $getSlots(): SlotNode[] {
   return email.getChildren().flatMap((c) => ($isSlotNode(c) ? [c] : $isGroupNode(c) ? c.getChildren().filter($isSlotNode) : []));
 }
 
+function $toJson(node: LexicalNode): LexNode {
+  const json = node.exportJSON() as unknown as LexNode;
+  return $isElementNode(node) ? { ...json, children: node.getChildren().map($toJson) } : json;
+}
+
+export const $slotContentSignature = (slot: SlotNode) => contentSignature(slot.getChildren().map($toJson));
+
 function $describe(node: LexicalNode): unknown {
-  if ($isSlotNode(node)) return ["slot", node.getAttrs()];
-  if ($isLockedBlockNode(node)) return ["locked", node.getBlockId(), node.getHtml(), node.getCondition()];
+  if ($isSlotNode(node)) return ["slot", node.getAttrs(), node.isEditable() ? null : $slotContentSignature(node)];
+  if ($isLockedBlockNode(node)) return ["locked", node.getBlockId(), node.getHtml()];
   if ($isGroupNode(node)) return ["group", node.getGroupId(), node.getWrapper(), node.getChildren().map($describe)];
   return ["other", node.getType()];
 }
@@ -334,7 +314,13 @@ export function $structure(): string {
   const root = $getRoot();
   const email = $getEmailNode();
   if (!email || root.getChildrenSize() !== 1) return "invalid";
-  return JSON.stringify([email.getFrame(), email.getVariables(), email.getTextStyles(), email.getChildren().map($describe)]);
+  return JSON.stringify([email.getFrame(), email.getVariables(), email.getChildren().map($describe)]);
+}
+
+export function $blockInfo(node: LexicalNode): BlockInfo {
+  if ($isSlotNode(node)) return { kind: "slot", wrapper: node.getAttrs().wrapper };
+  if ($isGroupNode(node)) return { kind: "group", slots: node.getChildren().filter($isSlotNode).map((s) => ({ wrapper: s.getAttrs().wrapper })) };
+  return { kind: "locked", html: $isLockedBlockNode(node) ? node.getHtml() : "" };
 }
 
 export function $findSlot(node: LexicalNode | null): SlotNode | null {

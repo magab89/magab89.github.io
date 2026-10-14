@@ -69,6 +69,7 @@
     "slug": "cl_meeting_rem",
     "name": "Meeting reminder",
     "description": "Sent to clients before a confirmed meeting.",
-    "subject": "Your meeting with {{ advisor_first_name }} is coming up"
+    "subject": "Your meeting with {{ advisor_first_name }} is coming up",
+    "lockedSlots": ["button_text"]
   }
 ]

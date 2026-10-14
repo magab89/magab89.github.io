@@ -1508,9 +1508,19 @@ textarea {
   display: none;
 }
 
-.blk-cond {
+.email-locked[data-condition]::before {
+  content: attr(data-condition);
   display: table;
   margin: 0 0 6px;
+  padding: 0 8px;
+  background: var(--gray-100);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--gray-600);
 }
 
 @media (max-width: 640px) {
@@ -1552,4 +1562,34 @@ textarea {
 
 .email-group > .email-slot {
   margin-bottom: 6px;
+}
+
+.email-slot-locked,
+.email-slot-locked:hover {
+  border-color: transparent;
+  background: none;
+  cursor: default;
+  user-select: none;
+}
+
+.email-slot-locked::after,
+.email-slot-locked.is-empty::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  right: -12px;
+  left: auto;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  background: #ffffff url("./assets/icons/lock-tag.svg") center / 11px 11px no-repeat;
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  transform: none;
+}
+
+@media (max-width: 640px) {
+  .email-slot-locked::after {
+    right: -6px;
+  }
 }

@@ -11,6 +11,7 @@ import { mergeRegister } from "@lexical/utils";
 import { $getRoot, $getSelection, $isRangeSelection, type LexicalEditor } from "lexical";
 import { useEffect, useMemo, useRef } from "react";
 import type { LexicalJson } from "../lexicalJson";
+import { slotLabel } from "../slotRules";
 import type { Variable } from "../types";
 import { $findSlot } from "./emailNodes";
 import { EMAIL_NODES, registerContentRules, registerEditingBehaviour } from "./emailRules";
@@ -87,7 +88,8 @@ function ActiveSlotPlugin({ onActive }: { onActive: (active: ActiveSlot | null) 
     const report = (e: LexicalEditor) =>
       e.getEditorState().read(() => {
         const sel = $getSelection();
-        const slot = $isRangeSelection(sel) ? $findSlot(sel.anchor.getNode()) : null;
+        const found = $isRangeSelection(sel) ? $findSlot(sel.anchor.getNode()) : null;
+        const slot = found?.isEditable() ? found : null;
         const attrs = slot?.getAttrs() ?? null;
         const element = slot ? e.getElementByKey(slot.getKey()) : null;
         if (activeEl.current !== element) {
@@ -98,7 +100,7 @@ function ActiveSlotPlugin({ onActive }: { onActive: (active: ActiveSlot | null) 
         const key = attrs ? `${attrs.slotId}:${attrs.slotFormat}` : null;
         if (key === last.current) return;
         last.current = key;
-        onActive(attrs ? { address: attrs.slotId, label: attrs.label, format: attrs.slotFormat, editor: e } : null);
+        onActive(attrs ? { address: attrs.slotId, label: slotLabel(attrs.slotId), format: attrs.slotFormat, editor: e } : null);
       });
     return editor.registerUpdateListener(() => report(editor));
   }, [editor, onActive]);

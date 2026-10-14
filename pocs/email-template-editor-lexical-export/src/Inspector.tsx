@@ -3,7 +3,8 @@ import type { LexicalJson, LexNode } from "./lexicalJson";
 import { highlightHtml, highlightJson, prettyHtml } from "./prettyHtml";
 import { renderJinja } from "./render";
 import { checkState, deleteRow, emailFor, fetchRecord, listRows, parseRecord, recompiledBodyMatches } from "./server";
-import { emailOf, slotText, slotsOf } from "./stateModel";
+import { slotLabel, slotRequired } from "./slotRules";
+import { emailOf, slotConditions, slotText, slotsOf } from "./stateModel";
 import type { EmailRecord } from "./types";
 
 export type InspectorTab = "record" | "database" | "send" | "slots" | "rule";
@@ -314,22 +315,25 @@ send_email(to=client.email, subject=subject, html=html)`}
 }
 
 function SlotsTab({ state }: { state: LexicalJson }) {
+  const conditions = slotConditions(state);
   return (
     <div className="tab-body">
       <p className="hint">
-        Each <code>email-slot</code> node in the editor state is one editable area. Its children are ordinary Lexical nodes, and its
-        <code>wrapper</code>, <code>prefix</code> and <code>suffix</code> tell Lexical's HTML export where the content goes. Shown below:
-        the area's text with variables as Jinja placeholders.
+        Each <code>email-slot</code> node in the editor state is one editable area. Its children are ordinary Lexical nodes. Its
+        <code>wrapper</code> is applied to each paragraph by Lexical's HTML export, and <code>editable: false</code> locks the content.
+        Labels, limits, the button look and the "Only if" conditions are derived in code. Shown below: the area's text with variables as
+        Jinja placeholders.
       </p>
       {slotsOf(state).map((slot) => (
         <div key={slot.slotId} className="slot-row">
           <p className="value-label">
-            {slot.label} <code>{slot.slotId}</code> <span className="muted">{slot.slotFormat}</span>
+            {slotLabel(slot.slotId)} <code>{slot.slotId}</code> <span className="muted">{slot.slotFormat}</span>
           </p>
           <p className="meta-line">
             <span>{countNodes(slot)} nodes</span>
-            {slot.condition && <span>{slot.condition}</span>}
-            {!slot.required && <span>optional</span>}
+            {conditions.get(slot.slotId) && <span>{conditions.get(slot.slotId)}</span>}
+            {!slotRequired(slot) && <span>optional</span>}
+            {!slot.editable && <span>locked</span>}
           </p>
           <CodeView lang="html" code={slotText(slot) || "(empty)"} />
           <details>
@@ -378,7 +382,8 @@ function RuleTab({ record, state }: { record: EmailRecord; state: LexicalJson })
     <div className="tab-body">
       <p className="hint">
         The server compares the structure of the submitted Lexical state with the system default: the frame, the variables, the
-        order and HTML of the locked blocks, and every editable area's settings. Only the content inside editable areas may differ.
+        order and HTML of the locked blocks, every area's settings, and the content of areas marked <code>editable: false</code>. Only
+        the content inside editable areas may differ.
         That content is then validated against an allowlist of node types. If both pass, the state is stored as submitted.
       </p>
       <label className="toggle">

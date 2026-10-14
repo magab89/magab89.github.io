@@ -21,12 +21,11 @@ export function lockedHtmlForEditor(html: string, labels: Map<string, string>): 
     .join("");
 }
 
-export function LockedBlockView({ html, condition }: { html: string; condition: string | null }) {
+export function LockedBlockView({ html }: { html: string }) {
   const labels = useContext(VariableLabelsContext);
   const markup = useMemo(() => ({ __html: lockedHtmlForEditor(html, labels) }), [html, labels]);
   return (
     <div className="blk blk-locked">
-      {condition && <span className="cond-pill blk-cond">{condition}</span>}
       <div dangerouslySetInnerHTML={markup} />
       <span className="lock-tag" title="Locked">
         <img src={lockTagIcon} width={11} height={11} alt="" />

@@ -15,17 +15,15 @@ import {
   type TextFormatType,
 } from "lexical";
 import type { LexicalJson } from "../lexicalJson";
-import type { TagStyles } from "../types";
+import { TEXT_STYLES } from "../slotRules";
 import {
   $findSlot,
-  $getEmailNode,
   $getSlots,
   CONTENT_MARKER,
   EmailNode,
   GroupNode,
   LockedBlockNode,
   SlotNode,
-  type SlotAttrs,
 } from "./emailNodes";
 import { EMAIL_NODES } from "./emailRules";
 import { VariableNode } from "./VariableNode";
@@ -44,7 +42,6 @@ function fillWrapper(wrapper: string, content: Node[]): DocumentFragment {
   return fragment;
 }
 
-const styles = (): TagStyles => $getEmailNode()?.getTextStyles() ?? {};
 
 function styled(tag: string, style: string | undefined): HTMLElement {
   const element = document.createElement(tag);
@@ -123,22 +120,8 @@ export const EMAIL_EXPORT: DOMExportOutputMap = new Map<Klass<LexicalNode>, Expo
     SlotNode,
     (_editor, node) => {
       const slot = node as SlotNode;
-      const a: SlotAttrs = slot.getAttrs();
-      if (a.slotId === "subject") return { element: null };
-      if (a.dropIfEmpty && !a.required && $isEmptySlot(slot)) return { element: null };
-      return {
-        element: document.createElement("span"),
-        after: (generated) => {
-          if (!(generated instanceof HTMLElement)) return undefined;
-          const content: Node[] = [...generated.childNodes];
-          if (a.prefix) content.unshift(document.createTextNode(a.prefix));
-          if (a.suffix) content.push(document.createTextNode(a.suffix));
-          if (a.wrapper) return fillWrapper(a.wrapper, content);
-          const fragment = document.createDocumentFragment();
-          fragment.append(...content);
-          return fragment;
-        },
-      };
+      if (slot.getAttrs().slotId === "subject" || $isEmptySlot(slot)) return { element: null };
+      return { element: document.createDocumentFragment() };
     },
   ],
   [
@@ -153,18 +136,32 @@ export const EMAIL_EXPORT: DOMExportOutputMap = new Map<Klass<LexicalNode>, Expo
     ParagraphNode,
     (_editor, node) => {
       const slot = $findSlot(node);
-      if (!slot || slot.getAttrs().slotFormat === "plain") return { element: document.createDocumentFragment() };
-      if ($isTrailingEmpty(node)) return { element: null };
-      const p = styled("p", slot.getAttrs().blockStyle);
-      if ($isElementNode(node) && node.getChildrenSize() === 0) p.append(document.createElement("br"));
-      return { element: p };
+      if (!slot) return { element: document.createDocumentFragment() };
+      const { slotFormat, wrapper } = slot.getAttrs();
+      if (slotFormat === "rich" && $isTrailingEmpty(node)) return { element: null };
+      const empty = $isElementNode(node) && node.getChildrenSize() === 0;
+      if (!wrapper) {
+        if (slotFormat === "plain") return { element: document.createDocumentFragment() };
+        const p = document.createElement("p");
+        if (empty) p.append(document.createElement("br"));
+        return { element: p };
+      }
+      return {
+        element: document.createElement("span"),
+        after: (generated) => {
+          if (!(generated instanceof HTMLElement)) return undefined;
+          const content: Node[] = [...generated.childNodes];
+          if (empty && slotFormat === "rich") content.push(document.createElement("br"));
+          return fillWrapper(wrapper, content);
+        },
+      };
     },
   ],
-  [HeadingNode, () => ({ element: styled("h3", styles().h3) })],
+  [HeadingNode, () => ({ element: styled("h3", TEXT_STYLES.h3) })],
   [
     ListNode,
     (_editor, node) => ({
-      element: styled((node as ListNode).getListType() === "number" ? "ol" : "ul", styles()[(node as ListNode).getListType() === "number" ? "ol" : "ul"]),
+      element: styled((node as ListNode).getListType() === "number" ? "ol" : "ul", TEXT_STYLES[(node as ListNode).getListType() === "number" ? "ol" : "ul"]),
       after: (generated) => {
         if (!(generated instanceof HTMLElement)) return undefined;
         for (const li of [...generated.children]) {
@@ -179,11 +176,11 @@ export const EMAIL_EXPORT: DOMExportOutputMap = new Map<Klass<LexicalNode>, Expo
       },
     }),
   ],
-  [ListItemNode, () => ({ element: styled("li", styles().li) })],
+  [ListItemNode, () => ({ element: styled("li", TEXT_STYLES.li) })],
   [
     LinkNode,
     (_editor, node) => {
-      const a = styled("a", styles().a);
+      const a = styled("a", TEXT_STYLES.a);
       a.setAttribute("href", (node as LinkNode).getURL());
       a.setAttribute("target", "_blank");
       a.setAttribute("rel", "noopener noreferrer");

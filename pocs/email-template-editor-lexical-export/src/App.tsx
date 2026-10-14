@@ -16,7 +16,7 @@ import { emailOf } from "./stateModel";
 import { EMAILS } from "./templates";
 import type { EmailRecord } from "./types";
 
-const STORAGE_KEY = "email-template-editor-lexical-export:v1";
+const STORAGE_KEY = "email-template-editor-lexical-export:v2";
 
 type Session = { record: EmailRecord; state: LexicalJson; samples: Record<string, string> };
 

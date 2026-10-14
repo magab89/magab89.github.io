@@ -12,21 +12,12 @@ import {
 import { EMAIL_NODES, registerContentRules } from "./editor/emailRules";
 import type { LexicalJson } from "./lexicalJson";
 import { variablesIn } from "./templates";
-import type { EmailSource, TagStyles } from "./types";
-
-const FONT = "font-family:Arial, Helvetica, sans-serif;";
-export const TEXT_STYLES: TagStyles = {
-  h3: `margin:0 0 8px 0; font-size:16px; font-weight:bold; ${FONT} color:#212529; line-height:1.5;`,
-  ul: `margin:0 0 16px 0; padding-left:20px; font-size:14px; ${FONT} color:#212529; line-height:1.5;`,
-  ol: `margin:0 0 16px 0; padding-left:20px; font-size:14px; ${FONT} color:#212529; line-height:1.5;`,
-  li: "margin:0 0 4px 0;",
-  a: "color:#5227CC; font-weight:500; text-decoration:underline;",
-};
+import type { EmailSource } from "./types";
 
 type Block = { lines: string[]; guard: string | null };
 type SlotPlan = SlotAttrs & { value: string };
 type Plan =
-  | { kind: "locked"; id: string; label: string; html: string; condition: string | null }
+  | { kind: "locked"; id: string; html: string }
   | ({ kind: "slot" } & SlotPlan)
   | { kind: "group"; id: string; wrapper: string; slots: SlotPlan[] };
 
@@ -34,22 +25,6 @@ const indentOf = (line: string) => line.match(/^ */)![0].length;
 const guardVar = (line: string) => line.match(/\{%-?\s*if\s+([a-z_][a-z0-9_]*)/)?.[1] ?? null;
 const isTagLine = (line: string) => /^\{%[\s\S]*%\}$/.test(line.trim());
 const protectTags = (lines: string[]) => lines.map((l) => (isTagLine(l) ? l.replace(/(\{%[\s\S]*%\})/, "<!--$1-->") : l)).join("\n");
-
-function conditionLabel(variable: string | null, slug: string): string | null {
-  if (!variable) return null;
-  const advisorEmail = slug.startsWith("ad_");
-  const labels: Record<string, string> = {
-    decline_message: "Only if the advisor adds a note",
-    cancellation_reason: advisorEmail ? "Only if the client gives a reason" : "Only if the advisor adds a note",
-    client_message: "Only if the client adds a note",
-    reschedule_message: "Only if the client adds a rescheduling note",
-    request_type: "Only for reschedule requests with a note",
-    event_type_booking_link: "Only if the client can book again",
-    intake_answers: "Only if the client answered intake questions",
-    notification_settings_link: "Only if notification settings apply",
-  };
-  return labels[variable] ?? `Only if ${variable.replace(/_/g, " ")} is set`;
-}
 
 function splitFrame(body: string) {
   const lines = body.split("\n");
@@ -129,21 +104,10 @@ export function templateToEditorState(source: EmailSource): LexicalJson {
   let textCount = 0;
   const plans: Plan[] = [];
 
-  const slot = (label: string, partial: Partial<SlotAttrs> & Pick<SlotAttrs, "slotFormat">, value: string): SlotPlan => ({
-    slotId: uniqueId(label),
-    label,
-    required: true,
-    maxLength: partial.slotFormat === "rich" ? 5000 : 200,
-    wrapper: "",
-    prefix: "",
-    suffix: "",
-    blockStyle: "",
-    condition: null,
-    dropIfEmpty: false,
-    look: "text",
-    ...partial,
-    value,
-  });
+  const slot = (label: string, slotFormat: SlotAttrs["slotFormat"], wrapper: string, value: string): SlotPlan => {
+    const slotId = uniqueId(label);
+    return { slotId, slotFormat, editable: !source.lockedSlots?.includes(slotId), wrapper, value };
+  };
 
   const textLabel = (bold: boolean, next?: Block, prev?: Block) => {
     const n = textCount++;
@@ -163,20 +127,13 @@ export function templateToEditorState(source: EmailSource): LexicalJson {
     return "Locked block";
   };
 
-  const planBlock = (block: Block, prev: Block | undefined, next: Block | undefined, condition: string | null): Plan[] => {
+  const planBlock = (block: Block, prev: Block | undefined, next: Block | undefined): Plan[] => {
     const para = plainParagraph(block.lines);
     if (para) {
       const bold = isBold(para.style);
       const label = textLabel(bold, next, prev);
-      const required = label === "Greeting" || label === "Message";
-      return [
-        {
-          kind: "slot",
-          ...(bold
-            ? slot(label, { slotFormat: "plain", wrapper: `${para.open}${CONTENT_MARKER}</p>`, required, dropIfEmpty: !required, condition }, para.text)
-            : slot(label, { slotFormat: "rich", blockStyle: para.style, required, dropIfEmpty: !required, condition }, `<p>${para.text}</p>`)),
-        },
-      ];
+      const wrapper = `${para.open}${CONTENT_MARKER}</p>`;
+      return [{ kind: "slot", ...(bold ? slot(label, "plain", wrapper, para.text) : slot(label, "rich", wrapper, `<p>${para.text}</p>`)) }];
     }
     const inline = block.lines.length === 3 ? block.lines[1].trim().match(/^(.*?)(\{% if [^%]+ %\})( )(.*)(\{% endif %\})$/) : null;
     const open = block.lines[0].trim();
@@ -187,47 +144,37 @@ export function templateToEditorState(source: EmailSource): LexicalJson {
           kind: "group",
           id: uniqueId(`${label} group`),
           wrapper: `${open}${CONTENT_MARKER}</p>`,
-          slots: [
-            slot(label, { slotFormat: "plain", maxLength: 500 }, inline[1]),
-            slot(
-              `${label}, conditional sentence`,
-              { slotFormat: "plain", maxLength: 300, required: false, prefix: inline[2] + inline[3], suffix: inline[5], condition: conditionLabel(guardVar(inline[2]), source.slug) },
-              inline[4],
-            ),
-          ],
+          slots: [slot(label, "plain", "", inline[1]), slot(`${label} conditional sentence`, "plain", `${inline[2]}${inline[3]}${CONTENT_MARKER}${inline[5]}`, inline[4])],
         },
       ];
     }
     const button = buttonBlock(block.lines);
-    if (button) {
-      return [{ kind: "slot", ...slot("Button text", { slotFormat: "plain", maxLength: 60, wrapper: button.wrapper, look: "button", condition }, button.label) }];
-    }
-    const label = lockedLabel(block.lines);
-    return [{ kind: "locked", id: uniqueId(label), label, html: protectTags(block.lines), condition }];
+    if (button) return [{ kind: "slot", ...slot("Button text", "plain", button.wrapper, button.label) }];
+    return [{ kind: "locked", id: uniqueId(lockedLabel(block.lines)), html: protectTags(block.lines) }];
   };
 
   blocks.forEach((block, i) => {
     if (footerStart >= 0 && i > footerStart) return;
     if (footerStart >= 0 && i === footerStart) {
-      plans.push({ kind: "locked", id: uniqueId("Footer"), label: "Footer", html: protectTags(blocks.slice(footerStart).flatMap((b) => b.lines)), condition: null });
+      plans.push({ kind: "locked", id: uniqueId("Footer"), html: protectTags(blocks.slice(footerStart).flatMap((b) => b.lines)) });
       return;
     }
     if (!block.guard) {
-      plans.push(...planBlock(block, blocks[i - 1], blocks[i + 1], null));
+      plans.push(...planBlock(block, blocks[i - 1], blocks[i + 1]));
       return;
     }
     const inner = splitBlocks(block.lines.slice(1, -1));
     const editable = inner.some((b) => plainParagraph(b.lines) || buttonBlock(b.lines));
-    const condition = conditionLabel(block.guard, source.slug);
     if (!editable) {
-      plans.push({ kind: "locked", id: uniqueId(lockedLabel(block.lines)), label: lockedLabel(block.lines), html: protectTags(block.lines), condition });
+      plans.push({ kind: "locked", id: uniqueId(lockedLabel(block.lines)), html: protectTags(block.lines) });
       return;
     }
-    plans.push({ kind: "locked", id: uniqueId("Condition start"), label: "Condition start", html: protectTags([block.lines[0]]), condition: null });
-    inner.forEach((b, j) => plans.push(...planBlock(b, inner[j - 1] ?? blocks[i - 1], inner[j + 1] ?? blocks[i + 1], condition)));
-    plans.push({ kind: "locked", id: uniqueId("Condition end"), label: "Condition end", html: protectTags([block.lines[block.lines.length - 1]]), condition: null });
+    plans.push({ kind: "locked", id: uniqueId("Condition start"), html: protectTags([block.lines[0]]) });
+    inner.forEach((b, j) => plans.push(...planBlock(b, inner[j - 1] ?? blocks[i - 1], inner[j + 1] ?? blocks[i + 1])));
+    plans.push({ kind: "locked", id: uniqueId("Condition end"), html: protectTags([block.lines[block.lines.length - 1]]) });
   });
 
+  const subject = slot("Subject", "plain", "", source.subject);
   const editor = createHeadlessEditor({
     namespace: "convert",
     nodes: EMAIL_NODES,
@@ -238,11 +185,11 @@ export function templateToEditorState(source: EmailSource): LexicalJson {
   registerContentRules(editor);
   editor.update(
     () => {
-      const email = $createEmailNode(frame, variablesIn(source.body, source.subject), TEXT_STYLES);
+      const email = $createEmailNode(frame, variablesIn(source.body, source.subject));
       $getRoot().clear().append(email);
-      email.append($fillSlot(editor, slot("Subject", { slotFormat: "plain", maxLength: 200 }, source.subject)));
+      email.append($fillSlot(editor, subject));
       for (const plan of plans) {
-        if (plan.kind === "locked") email.append($createLockedBlockNode(plan.id, plan.label, plan.html, plan.condition));
+        if (plan.kind === "locked") email.append($createLockedBlockNode(plan.id, plan.html));
         else if (plan.kind === "slot") email.append($fillSlot(editor, plan));
         else email.append($createGroupNode(plan.id, plan.wrapper).append(...plan.slots.map((s) => $fillSlot(editor, s))));
       }
@@ -253,7 +200,8 @@ export function templateToEditorState(source: EmailSource): LexicalJson {
 }
 
 function $fillSlot(editor: LexicalEditor, plan: SlotPlan) {
-  const { value, ...attrs } = plan;
+  const { slotId, slotFormat, editable, wrapper, value } = plan;
+  const attrs = { slotId, slotFormat, editable, wrapper };
   const slot = $createSlotNode(attrs);
   if (attrs.slotFormat === "plain") {
     const paragraph = $createParagraphNode();

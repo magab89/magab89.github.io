@@ -111,4 +111,5 @@ export type EmailSource = {
   sentTo: string;
   subject: string;
   body: string;
+  lockedSlots?: string[];
 };

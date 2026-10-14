@@ -5,7 +5,7 @@ import { structureOf, validateState, type StateError } from "./stateModel";
 import { EMAILS } from "./templates";
 import type { EmailRecord, EmailSource } from "./types";
 
-const DB_KEY = "email-template-editor-lexical-export:db:v1";
+const DB_KEY = "email-template-editor-lexical-export:db:v2";
 const LATENCY_MS = 450;
 const defaults = new Map<string, LexicalJson>();
 
