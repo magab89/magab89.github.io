@@ -2,20 +2,20 @@ import { templateToEditorState } from "./convert";
 import type { LexicalJson } from "./lexicalJson";
 import { compileState, structureOf, validateState, type StateError } from "./stateModel";
 import { EMAILS } from "./templates";
-import type { EmailDefinition, EmailRecord } from "./types";
+import type { EmailRecord, EmailSource } from "./types";
 
 const DB_KEY = "email-template-editor-lexical-single:db:v1";
 const LATENCY_MS = 450;
 const defaults = new Map<string, LexicalJson>();
 
-export const emailFor = (templateType: string): EmailDefinition => {
+export const emailFor = (templateType: string): EmailSource => {
   const email = EMAILS.find((e) => e.slug === templateType);
   if (!email) throw new Error(`Unknown template type "${templateType}"`);
   return email;
 };
 
 export function systemDefaultState(templateType: string): LexicalJson {
-  if (!defaults.has(templateType)) defaults.set(templateType, templateToEditorState(emailFor(templateType).doc));
+  if (!defaults.has(templateType)) defaults.set(templateType, templateToEditorState(emailFor(templateType)));
   return defaults.get(templateType)!;
 }
 

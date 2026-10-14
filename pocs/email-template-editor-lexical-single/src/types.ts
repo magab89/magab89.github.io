@@ -102,3 +102,13 @@ export type EmailRecord = {
   body: string;
   editorState: LexicalJson;
 };
+
+export type EmailSource = {
+  slug: string;
+  name: string;
+  description: string;
+  purpose: string;
+  sentTo: string;
+  subject: string;
+  body: string;
+};

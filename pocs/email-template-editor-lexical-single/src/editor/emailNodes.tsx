@@ -85,6 +85,8 @@ export type SlotAttrs = {
   after: string;
   condition: string | null;
   dropIfEmpty: boolean;
+  lineIndent: string;
+  blockStyle: string;
 };
 
 export type SerializedSlotNode = Spread<SlotAttrs, SerializedElementNode>;
@@ -106,8 +108,10 @@ export class SlotNode extends ElementNode {
   }
 
   static importJSON(json: SerializedSlotNode): SlotNode {
-    const { slotId, label, slotFormat, required, maxLength, before, after, condition, dropIfEmpty } = json;
-    return $createSlotNode({ slotId, label, slotFormat, required, maxLength, before, after, condition, dropIfEmpty }).updateFromJSON(json);
+    const { slotId, label, slotFormat, required, maxLength, before, after, condition, dropIfEmpty, lineIndent, blockStyle } = json;
+    return $createSlotNode({ slotId, label, slotFormat, required, maxLength, before, after, condition, dropIfEmpty, lineIndent, blockStyle }).updateFromJSON(
+      json,
+    );
   }
 
   exportJSON(): SerializedSlotNode {
@@ -121,7 +125,7 @@ export class SlotNode extends ElementNode {
     dom.dataset.slot = a.slotId;
     dom.dataset.placeholder = a.required ? `Add a ${a.label.toLowerCase()}` : `Add a ${a.label.toLowerCase()} (optional)`;
     if (a.condition) dom.dataset.condition = a.condition;
-    const style = wrapperStyle(a.before);
+    const style = displayStyle(a.slotFormat === "rich" && a.blockStyle ? a.blockStyle : (lastTagStyle(a.before) ?? ""));
     if (style) dom.style.cssText = style;
     return dom;
   }
@@ -147,41 +151,47 @@ export class SlotNode extends ElementNode {
   }
 }
 
-export type SerializedLockedBlockNode = Spread<{ blockId: string; label: string; html: string }, SerializedLexicalNode>;
+export type SerializedLockedBlockNode = Spread<{ blockId: string; label: string; html: string; condition: string | null }, SerializedLexicalNode>;
 
 export class LockedBlockNode extends DecoratorNode<JSX.Element> {
   __blockId: string;
   __label: string;
   __html: string;
+  __condition: string | null;
 
   static getType(): string {
     return "email-locked";
   }
 
   static clone(node: LockedBlockNode): LockedBlockNode {
-    return new LockedBlockNode(node.__blockId, node.__label, node.__html, node.__key);
+    return new LockedBlockNode(node.__blockId, node.__label, node.__html, node.__condition, node.__key);
   }
 
-  constructor(blockId: string, label: string, html: string, key?: NodeKey) {
+  constructor(blockId: string, label: string, html: string, condition: string | null, key?: NodeKey) {
     super(key);
     this.__blockId = blockId;
     this.__label = label;
     this.__html = html;
+    this.__condition = condition;
   }
 
   static importJSON(json: SerializedLockedBlockNode): LockedBlockNode {
-    return $createLockedBlockNode(json.blockId, json.label, json.html).updateFromJSON(json);
+    return $createLockedBlockNode(json.blockId, json.label, json.html, json.condition ?? null).updateFromJSON(json);
   }
 
   exportJSON(): SerializedLockedBlockNode {
-    return { ...super.exportJSON(), blockId: this.__blockId, label: this.__label, html: this.__html };
+    return { ...super.exportJSON(), blockId: this.__blockId, label: this.__label, html: this.__html, condition: this.__condition };
   }
 
   createDOM(_config: EditorConfig): HTMLElement {
     const dom = document.createElement("div");
-    dom.className = "email-locked";
+    dom.className = isInvisible(this.__html) ? "email-locked email-locked-hidden" : "email-locked";
     dom.dataset.block = this.__blockId;
     return dom;
+  }
+
+  getCondition(): string | null {
+    return this.getLatest().__condition;
   }
 
   updateDOM(): false {
@@ -205,7 +215,7 @@ export class LockedBlockNode extends DecoratorNode<JSX.Element> {
   }
 
   decorate(): JSX.Element {
-    return <LockedBlockView html={this.__html} />;
+    return <LockedBlockView html={this.__html} condition={this.__condition} />;
   }
 }
 
@@ -217,8 +227,8 @@ export function $createSlotNode(attrs: SlotAttrs): SlotNode {
   return $applyNodeReplacement(new SlotNode(attrs));
 }
 
-export function $createLockedBlockNode(blockId: string, label: string, html: string): LockedBlockNode {
-  return $applyNodeReplacement(new LockedBlockNode(blockId, label, html));
+export function $createLockedBlockNode(blockId: string, label: string, html: string, condition: string | null = null): LockedBlockNode {
+  return $applyNodeReplacement(new LockedBlockNode(blockId, label, html, condition));
 }
 
 export const $isEmailNode = (n: LexicalNode | null | undefined): n is EmailNode => n instanceof EmailNode;
@@ -239,7 +249,11 @@ export function $structure(): string {
     email.getVariables(),
     email.getTextStyles(),
     email.getChildren().map((c) =>
-      $isSlotNode(c) ? ["slot", c.getAttrs()] : $isLockedBlockNode(c) ? ["locked", c.getBlockId(), c.getHtml()] : ["other", c.getType()],
+      $isSlotNode(c)
+        ? ["slot", c.getAttrs()]
+        : $isLockedBlockNode(c)
+          ? ["locked", c.getBlockId(), c.getHtml(), c.getCondition()]
+          : ["other", c.getType()],
     ),
   ]);
 }
@@ -253,15 +267,22 @@ export function $findSlot(node: LexicalNode | null): SlotNode | null {
   return null;
 }
 
-const KEEP = /^(font-size|font-weight|font-style|color|line-height|letter-spacing|text-transform)$/;
+const KEEP = /^(font-size|font-weight|font-style|color|line-height|letter-spacing|text-transform|text-align)$/;
 
-function wrapperStyle(before: string): string {
+function lastTagStyle(before: string): string | null {
   const tags = [...before.matchAll(/<(p|div|td|h[1-6])\b[^>]*\bstyle="([^"]*)"/g)];
-  const last = tags[tags.length - 1];
-  if (!last) return "";
-  return last[2]
+  return tags.length ? tags[tags.length - 1][2] : null;
+}
+
+function displayStyle(style: string): string {
+  return style
     .split(";")
     .map((d) => d.trim())
     .filter((d) => KEEP.test(d.split(":")[0]?.trim() ?? ""))
     .join("; ");
+}
+
+function isInvisible(html: string): boolean {
+  const withoutLogic = html.replace(/\{%-?[\s\S]*?-?%\}/g, "").replace(/<!--[\s\S]*?-->/g, "");
+  return withoutLogic.trim() === "";
 }

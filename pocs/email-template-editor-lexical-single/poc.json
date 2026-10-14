@@ -1,6 +1,10 @@
 {
   "title": "Email template editor: one Lexical document",
-  "description": "Same editor, but the whole email is a single Lexical editor. Locked blocks and editable areas are custom Lexical nodes, so the saved record stores Lexical's JSON output verbatim next to the Jinja-ready HTML.",
+  "description": "The whole email is one Lexical document, built from the 12 production scheduling templates. Saving stores Lexical's JSON verbatim, and the default content compiles to byte-identical subject and body HTML.",
   "date": "2026-10-14",
-  "tags": ["lexical", "react", "email"]
+  "tags": [
+    "lexical",
+    "react",
+    "email"
+  ]
 }

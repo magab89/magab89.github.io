@@ -1424,6 +1424,16 @@ textarea {
 
 .email-locked {
   user-select: none;
+  white-space: normal;
+}
+
+.email-locked-hidden {
+  display: none;
+}
+
+.blk-cond {
+  display: table;
+  margin: 0 0 6px;
 }
 
 @media (max-width: 640px) {
