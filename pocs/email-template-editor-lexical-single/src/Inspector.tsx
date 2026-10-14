@@ -116,14 +116,14 @@ function RecordTab({ record, liveRecord, dirty, hasErrors, samples }: Props) {
           body: rendered
         </button>
       </div>
-      {view === "record" && <CodeView lang="json" code={pretty(shown)} />}
-      {view === "state" && <CodeView lang="json" code={pretty(shown.editorState)} />}
+      {view === "record" && <CodeView lang="json" code={pretty(shown)} fill />}
+      {view === "state" && <CodeView lang="json" code={pretty(shown.editorState)} fill />}
       {view === "jinja" && (
         <>
           <p className="value-label">subject</p>
           <CodeView lang="html" code={shown.subject} />
           <p className="value-label">body</p>
-          <CodeView lang="html" code={prettyHtml(shown.body)} />
+          <CodeView lang="html" code={prettyHtml(shown.body)} fill />
         </>
       )}
       {view === "rendered" &&
@@ -134,7 +134,7 @@ function RecordTab({ record, liveRecord, dirty, hasErrors, samples }: Props) {
             <p className="value-label">subject</p>
             <CodeView lang="html" code={renderJinja(shown.subject, samples).html} />
             <p className="value-label">body, with the sample values</p>
-            <CodeView lang="html" code={prettyHtml(rendered?.html ?? "")} />
+            <CodeView lang="html" code={prettyHtml(rendered?.html ?? "")} fill />
           </>
         ))}
     </div>
@@ -411,11 +411,11 @@ function RuleTab({ record, state }: { record: EmailRecord; state: LexicalJson })
   );
 }
 
-export function CodeView({ code, lang }: { code: string; lang: "html" | "json" | "python" }) {
+export function CodeView({ code, lang, fill }: { code: string; lang: "html" | "json" | "python"; fill?: boolean }) {
   const [copied, setCopied] = useState(false);
   const html = useMemo(() => ({ __html: lang === "json" ? highlightJson(code) : highlightHtml(code) }), [code, lang]);
   return (
-    <div className="code-view">
+    <div className={`code-view${fill ? " fill" : ""}`}>
       <button
         className="btn-ghost code-copy"
         onClick={() =>
