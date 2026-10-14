@@ -251,7 +251,8 @@ code {
 
 .toolbar {
   position: sticky;
-  top: 0;
+  top: -16px;
+  box-shadow: 0 -17px 0 0 #ffffff;
   z-index: 10;
   display: flex;
   flex-wrap: wrap;
@@ -1292,6 +1293,7 @@ textarea {
 
   .toolbar {
     top: 72px;
+    box-shadow: none;
   }
 
   .details-col {
@@ -1525,4 +1527,10 @@ textarea {
     top: 26px;
     left: 23px;
   }
+}
+
+.blk-locked a,
+.email-locked a {
+  pointer-events: none;
+  cursor: default;
 }

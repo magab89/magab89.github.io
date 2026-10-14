@@ -352,11 +352,11 @@ function RuleTab({ record, state }: { record: EmailRecord; state: LexicalJson })
     if (layout) {
       const footer = email.children.find((c) => c.blockId === "footer");
       if (footer) footer.html = "<p>(footer removed by the client)</p>";
-      email.children = email.children.filter((c) => c.blockId !== "details");
+      email.children = email.children.filter((c) => c.blockId !== "meeting_details");
       email.frame = email.frame.replace("max-width:600px", "max-width:2000px");
     }
     if (content) {
-      const message = email.children.find((c) => c.slotId === "message.text");
+      const message = email.children.flatMap((c) => (c.type === "email-group" ? (c.children ?? []) : [c])).find((c) => c.slotId === "message");
       const paragraph = message?.children?.[0];
       paragraph?.children?.push(
         { type: "image", src: "https://evil.example/pixel.png", version: 1 },

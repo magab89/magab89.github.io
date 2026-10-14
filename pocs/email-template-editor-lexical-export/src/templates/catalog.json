@@ -1,0 +1,74 @@
+[
+  {
+    "slug": "cl_book_invite",
+    "name": "Invitation to book a meeting",
+    "description": "Sent to clients when you invite a client to pick a time.",
+    "subject": "{{ advisor_first_name }} would like to set up a meeting"
+  },
+  {
+    "slug": "cl_book_decl",
+    "name": "Booking request declined",
+    "description": "Sent to clients when you decline a booking request.",
+    "subject": "An update on your meeting request"
+  },
+  {
+    "slug": "cl_rebook_invite",
+    "name": "Invitation to rebook a meeting",
+    "description": "Sent to clients when a meeting needs a new time.",
+    "subject": "Choose a new time for your meeting"
+  },
+  {
+    "slug": "cl_resched_decl",
+    "name": "Reschedule request declined",
+    "description": "Sent to clients when you decline a reschedule request.",
+    "subject": "An update on your requested time"
+  },
+  {
+    "slug": "cl_change_notice",
+    "name": "Change notice",
+    "description": "Sent to clients when the event type changes before a time is picked. The booking link stays the same.",
+    "subject": "An update to the meeting you're booking"
+  },
+  {
+    "slug": "cl_cancel_msg",
+    "name": "Cancellation with message",
+    "description": "Sent to clients when you cancel a meeting with a message.",
+    "subject": "A message about your meeting with {{ advisor_first_name }}"
+  },
+  {
+    "slug": "cl_book_reminder",
+    "name": "Reminder to book a meeting",
+    "description": "Sent to clients when a client hasn't booked yet.",
+    "subject": "A reminder to book your meeting"
+  },
+  {
+    "slug": "ad_req_pending",
+    "name": "New request awaiting approval",
+    "description": "Sent to you when a request needs your approval.",
+    "subject": "Action needed: {{ client_name }} requested {{ request_summary }} — {{ event_type_name }}, {{ date }}, {{ time }}"
+  },
+  {
+    "slug": "ad_new_booking",
+    "name": "New booking notification",
+    "description": "Sent to you when a client books without approval.",
+    "subject": "New booking: {{ client_name }} — {{ event_type_name }}, {{ date }}, {{ time }}"
+  },
+  {
+    "slug": "ad_resched",
+    "name": "Rescheduling notification",
+    "description": "Sent to you when a client reschedules.",
+    "subject": "Rescheduled: {{ client_name }} moved your meeting to {{ date }}, {{ time }}"
+  },
+  {
+    "slug": "ad_cancel_notify",
+    "name": "Cancellation notification",
+    "description": "Sent to you when a client cancels on the booking page.",
+    "subject": "{{ client_name }} canceled your meeting on {{ date }}"
+  },
+  {
+    "slug": "cl_meeting_rem",
+    "name": "Meeting reminder",
+    "description": "Sent to clients before a confirmed meeting.",
+    "subject": "Your meeting with {{ advisor_first_name }} is coming up"
+  }
+]

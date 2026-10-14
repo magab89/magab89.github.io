@@ -1,0 +1,6 @@
+{
+  "title": "Email template editor: Lexical HTML export",
+  "description": "Same single Lexical document, but the email body is produced by Lexical's own HTML export ($generateHtmlFromNodes with export overrides) instead of a custom compiler. Output looks identical to the production templates.",
+  "date": "2026-10-14",
+  "tags": ["lexical", "react", "email"]
+}
