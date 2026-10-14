@@ -187,6 +187,11 @@ code {
 }
 
 .details-col {
+  position: sticky;
+  top: 64px;
+  align-self: start;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -876,7 +881,7 @@ code {
 
 .code-view.fill {
   flex: 1 1 auto;
-  min-height: max(480px, calc(100vh - 120px));
+  min-height: max(240px, calc(100vh - 64px - 64px - 17px - 40px));
 }
 
 .code-view.fill pre.code {
@@ -1245,8 +1250,15 @@ textarea {
   }
 
   .details-col {
+    position: static;
+    height: auto;
+    overflow: visible;
     border-left: 0;
     border-top: 1px solid var(--gray-100);
+  }
+
+  .code-view.fill {
+    min-height: 480px;
   }
 }
 
